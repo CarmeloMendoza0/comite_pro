@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Plan de Cuentas{% endblock %}
+
+{% block content %}
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <h1 class="text-3xl font-bold mb-6 text-gray-700 border-b pb-4">Plan de Cuentas</h1>
+
+    <!-- Función recursiva para mostrar subcuentas -->
+    <ul class="list-none pl-0">
+        {% for cuenta_info in cuentas_con_subcuentas %}
+        <li class="mb-4">
+            <div class="flex items-center justify-between">
+                <div class="text-lg font-semibold text-gray-800">
+                    {{ cuenta_info.cuenta.codigo }} - {{ cuenta_info.cuenta.nombre }} 
+                    <span class="text-sm font-medium text-gray-500">(Nivel {{ cuenta_info.cuenta.nivel }})</span>
+                </div>
+            </div>
+
+            <!-- Verificar si la cuenta tiene subcuentas -->
+            {% if cuenta_info.has_subcuentas %}
+            <ul class="ml-6 border-l-2 border-gray-300 pl-4 mt-2 space-y-2">
+                {% for subcuenta in cuenta_info.subcuentas %}
+                <li>
+                    <div class="flex items-center justify-between">
+                        <div class="text-base font-medium text-gray-700">
+                            {{ subcuenta.codigo }} - {{ subcuenta.nombre }}
+                            <span class="text-sm font-light text-gray-500">(Nivel {{ subcuenta.nivel }})</span>
+                        </div>
+                    </div>
+
+                    <!-- Llamada recursiva para mostrar sub-subcuentas -->
+                    {% if subcuenta.subcuentas.exists %}
+                    <ul class="ml-6 border-l-2 border-gray-200 pl-4 mt-2 space-y-2">
+                        {% for subsubcuenta in subcuenta.subcuentas.all %}
+                        <li>
+                            <div class="text-base text-gray-600">
+                                {{ subsubcuenta.codigo }} - {{ subsubcuenta.nombre }}
+                                <span class="text-sm font-light text-gray-500">(Nivel {{ subsubcuenta.nivel }})</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Paginación -->
+    <div class="mt-6 flex justify-between items-center">
+        {% if cuentas_con_subcuentas.has_previous %}
+        <a href="?page={{ cuentas_con_subcuentas.previous_page_number }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            Anterior
+        </a>
+        {% else %}
+        <span class="text-gray-500 px-4 py-2">Anterior</span>
+        {% endif %}
+
+        <span>Página {{ cuentas_con_subcuentas.number }} de {{ cuentas_con_subcuentas.paginator.num_pages }}</span>
+
+        {% if cuentas_con_subcuentas.has_next %}
+        <a href="?page={{ cuentas_con_subcuentas.next_page_number }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            Siguiente
+        </a>
+        {% else %}
+        <span class="text-gray-500 px-4 py-2">Siguiente</span>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+  <h1 class="text-2xl font-bold mb-4">{{ title }}</h1>
+  
+  <dic class="mb-4">
+    <a href="{% url 'documentobanco_create' %}" class="bg-blue-500 text-white py-2 px-4 rounded-lg">Registrar Documento</a>
+  </div>
+  
+  <!-- Contenedor del Formulario de búsqueda centrado -->
+  <div class="flex justify-center mb-4">
+    <form method="get" action="" class="w-full max-w-md">
+        <div class="flex items-center">
+            <input type="text" name="query" placeholder="Buscar cuenta" value="{{ request.GET.query }}"
+                   class="border border-gray-300 p-2 rounded-l-lg w-full">
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r-lg hover:bg-blue-600">
+                Buscar
+            </button>
+        </div>
+    </form>
+  </div>
+
+  <table class="min-w-full mt-6 bg-white border border-gray-200">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Número Documento</th>
+        <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+        <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Empresa</th>
+        <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+        <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Monto</th>
+        <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for documento in documentos_banco %}
+        <tr class="border-b">
+          <td class="px-6 py-2">{{ documento.numero_documento }}</td>
+          <td class="px-6 py-2">{{ documento.tipo_documento.nombre }}</td>
+          <td class="px-6 py-2">{{ documento.empresa.razon_social }}</td>
+          <td class="px-6 py-2">{{ documento.fecha }}</td>
+          <td class="px-6 py-2">{{ documento.monto }}</td>
+          <td>
+            <a href="{% url 'documentobanco_edit' documento.pk %}" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600">Editar</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6" class="text-center py-4">No se encontraron documentos bancarios.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

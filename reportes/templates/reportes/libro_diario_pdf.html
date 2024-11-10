@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Reporte de Libro Diario (PDF){% endblock %}
+
+{% block content %}
+<!-- Encabezado -->
+<div class="max-w-4xl mx-auto p-6">
+    <div class="text-center mb-8">
+        <h2 class="text-xl font-bold">COMITÉ PRO-OPERACIÓN ADMINISTRACIÓN Y MANTENIMIENTO DE AGUA POTABLE</h2>
+        <h4 class="text-lg font-semibold mt-2">Libro Diario del {{ fecha_inicio }} al {{ fecha_fin }}</h4>
+    </div>
+    <table class="min-w-full border border-gray-400">
+        <thead>
+            <tr class="bg-gray-200">
+                <th class="border border-gray-400 px-4 py-2">No.</th>
+                <th class="border border-gray-400 px-4 py-2">Descripción</th>
+                <th class="border border-gray-400 px-4 py-2">Debe</th>
+                <th class="border border-gray-400 px-4 py-2">Haber</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transaccion in reporte_data %}
+            <tr class="border-t">
+                <!-- Día de la transacción -->
+                <td class="border border-gray-400 px-4 py-2" rowspan="{{ transaccion.fecha|length|add:6 }}" rowspan="{{ transaccion.movimientos|length|add:2 }}">Día {{ transaccion.fecha|date:"d/m/Y" }}</td>
+                <!-- Descripción de la partida y número de la partida -->
+                <td class="border border-gray-400 px-4 py-2 font-bold">Partida #{{ forloop.counter }}: {{ transaccion.descripcion }}</td>
+                <td class="border border-gray-400 px-4 py-2"></td>
+                <td class="border border-gray-400 px-4 py-2"></td>
+            </tr>
+            {% for movimiento in transaccion.movimientos %}
+            <tr class="border-t">
+                <td class="border border-gray-400 px-4 py-2">{{ movimiento.cuenta }}</td>
+                <td class="border border-gray-400 px-4 py-2 text-right">Q {{ movimiento.debe|floatformat:2 }}</td>
+                <td class="border border-gray-400 px-4 py-2 text-right">Q {{ movimiento.haber|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="border-t bg-gray-100">
+                <td class="border border-gray-400 px-4 py-2 font-bold">Total</td>
+                <td class="border border-gray-400 px-4 py-2 text-right font-bold">Q {{ transaccion.total_debe|floatformat:2 }}</td>
+                <td class="border border-gray-400 px-4 py-2 text-right font-bold">Q {{ transaccion.total_haber|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

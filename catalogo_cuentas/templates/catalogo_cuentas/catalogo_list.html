@@ -1,0 +1,49 @@
+{% extends 'base.html' %} 
+
+{% block title %}Lista de Catálogos{% endblock %} 
+
+{% block content %}
+<div class="flex justify-between items-center mb-4 p-6">
+  <h1 class="text-2xl font-bold">Lista de Catálogos</h1>
+  <a
+    href="{% url 'catalogo_create' %}"
+    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+  >
+    Crear Nuevo Catálogo
+  </a>
+</div>
+
+<table class="min-w-full mt-6 bg-white border border-gray-200">
+  <thead class="bg-gray-50">
+    <tr>
+      <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+      <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Empresa</th>
+      <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+      <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for catalogo in catalogos %}
+    <tr class="border-t">
+      <td class="px-6 py-2">{{ catalogo.nombre }}</td>
+      <td class="px-6 py-2">{{ catalogo.empresa.razon_social }}</td>
+      <td class="px-6 py-2">{{ catalogo.tipo }}</td>
+      <td class="px-6 py-2">
+        <a
+          href="{% url 'catalogo_update' catalogo.pk %}"
+          class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+        >
+          Editar
+        </a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="5" class="text-center py-4 text-gray-500">
+        No hay catálogos disponibles.
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock content %}

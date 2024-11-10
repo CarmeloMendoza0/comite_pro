@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Reporte de Libro Diario{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
+    <h1 class="text-3xl font-semibold mb-6 text-center text-gray-800">Reporte de Libro Diario</h1>
+
+    <form method="get" class="mb-8 flex flex-wrap items-center justify-between">
+        <div class="flex flex-col sm:flex-row items-center w-full sm:w-auto">
+            <label for="fecha_inicio" class="mr-2 mb-2 sm:mb-0 text-gray-600 font-medium">Fecha Inicio:</label>
+            <input type="date" name="fecha_inicio" value="{{ fecha_inicio }}" class="form-input mb-2 sm:mb-0 sm:mr-4 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:border-blue-500">
+        </div>
+        <div class="flex flex-col sm:flex-row items-center w-full sm:w-auto">
+            <label for="fecha_fin" class="mr-2 mb-2 sm:mb-0 text-gray-600 font-medium">Fecha Fin:</label>
+            <input type="date" name="fecha_fin" value="{{ fecha_fin }}" class="form-input mb-2 sm:mb-0 sm:mr-4 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:border-blue-500">
+        </div>
+        <div class="w-full sm:w-auto mt-4 sm:mt-0">
+            <button type="submit" class="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all">Filtrar</button>
+        </div>
+        <a href="{% url 'exportar_libro_diario_pdf' %}?fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}"
+           class="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-all">
+            Exportar a PDF
+        </a>
+    </form>
+
+
+
+    <table class="min-w-full border border-gray-300">
+        <thead>
+            <tr class="bg-gray-200">
+                <th class="border px-4 py-2">No.</th>
+                <th class="border px-4 py-2">Descripción</th>
+                <th class="border px-4 py-2">Debe</th>
+                <th class="border px-4 py-2">Haber</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transaccion in reporte_data %}
+            <tr class="border-t">
+                <!-- Día de la transacción -->
+                <td class="border px-4 py-2" rowspan="{{ transaccion.movimientos|length|add:2 }}">Día {{ transaccion.fecha|date:"d/m/Y"}}</td>
+                <!-- Descripción de la partida y número de la partida -->
+                <td class="border px-4 py-2 font-bold">Partida #{{ forloop.counter }}: {{ transaccion.descripcion }}</td>
+                <td class="border px-4 py-2"></td>
+                <td class="border px-4 py-2"></td>
+            </tr>
+            {% for movimiento in transaccion.movimientos %}
+            <tr class="border-t">
+                <td class="border px-4 py-2">{{ movimiento.cuenta }}</td>
+                <td class="border px-4 py-2 text-right">Q {{ movimiento.debe|floatformat:2 }}</td>
+                <td class="border px-4 py-2 text-right">Q {{ movimiento.haber|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="border-t bg-gray-100">
+                <td class="border px-4 py-2 font-bold">Total</td>
+                <td class="border px-4 py-2 text-right font-bold">Q {{ transaccion.total_debe|floatformat:2 }}</td>
+                <td class="border px-4 py-2 text-right font-bold">Q {{ transaccion.total_haber|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div> 
+
+{% endblock %}

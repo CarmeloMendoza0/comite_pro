@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tailwind_filters %}
+
+{% block title %}Registrar Comprobante{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-4">Registrar Comprobante</h1>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <!-- Encabezado del comprobante -->
+        <h2 class="text-xl font-semibold mb-2">Encabezado del Documento</h2>
+        {{ doc_form|crispy }}
+
+        <!-- Detalle de la Transacción -->
+        <h2 class="text-xl font-semibold mt-4 mb-2">Detalle de la Transacción</h2>
+        {{ transaccion_form|crispy }}
+
+        <!-- Selección de Cuentas y Partidas -->
+        <h2 class="text-xl font-semibold mt-4 mb-2">Cuentas Contables</h2>
+        {{ movimiento_formset.management_form }}
+        <table class="min-w-full bg-white border border-gray-300">
+            <thead>
+                <tr>
+                    <th class="px-4 py-2">Cuenta</th>
+                    <th class="px-4 py-2">Debe</th>
+                    <th class="px-4 py-2">Haber</th>
+                    <th class="px-4 py-2">Eliminar</th>
+                </tr>
+            </thead>
+            <tbody id="movimientos-table-body">
+                {% for form in movimiento_formset.forms %}
+                <tr class="movimiento-form">
+                    <td class="px-4 py-2">
+                        {{ form.cuenta }}
+                    </td>
+                    <td class="px-4 py-2">
+                        {{ form.debe }}
+                    </td>
+                    <td class="px-4 py-2">
+                        {{ form.haber }}
+                    </td>
+                    <td class="px-4 py-2 text-center">
+                        {{ form.DELETE }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- Formulario Vacío Oculto para Clonar -->
+        <template id="empty-form">
+            <tr class="movimiento-form">
+                <td class="px-4 py-2">
+                    {{ movimiento_formset.empty_form.cuenta }}
+                </td>
+                <td class="px-4 py-2">
+                    {{ movimiento_formset.empty_form.debe }}
+                </td>
+                <td class="px-4 py-2">
+                    {{ movimiento_formset.empty_form.haber }}
+                </td>
+                <td class="px-4 py-2 text-center">
+                    <input type="checkbox" name="form-__prefix__-DELETE" id="id_form-__prefix__-DELETE">
+                </td>
+            </tr>
+        </template>
+       
+        <!-- Formulario para agregar un nuevo movimiento -->
+        <h2 class="text-xl font-semibold mt-4 mb-2">Agregar Movimiento</h2>
+        <div class="flex space-x-4">
+            <div>
+                <label for="id_cuenta_seleccionada">Cuenta:</label>
+                <select id="id_cuenta_seleccionada" class="block w-full mt-1">
+                    {% for cuenta in cuentas %}
+                    <option value="{{ cuenta.id }}">{{ cuenta.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="id_debe_seleccionado">Debe:</label>
+                <input type="number" id="id_debe_seleccionado" step="0.01" class="block w-full mt-1" />
+            </div>
+            <div>
+                <label for="id_haber_seleccionado">Haber:</label>
+                <input type="number" id="id_haber_seleccionado" step="0.01" class="block w-full mt-1" />
+            </div>
+            <div>
+                <button type="button" id="add-movement" class="bg-blue-500 text-white py-2 px-4 rounded-lg mt-6">Agregar a la Partida</button>
+            </div>
+        </div>
+
+
+        <!-- Resumen de la Transacción -->
+        <div class="mt-4">
+            <p>Total Debe: <span id="total-debe">0.00</span></p>
+            <p>Total Haber: <span id="total-haber">0.00</span></p>
+            <p id="balance-error" class="text-red-500 hidden">El Debe y el Haber deben coincidir.</p>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="mt-6 flex justify-between">
+            <button type="submit" class="bg-green-500 text-white py-2 px-4 rounded-lg">Guardar Comprobante</button>
+            <a href="{% url 'doccomprobante_list' %}" class="bg-gray-500 text-white py-2 px-4 rounded-lg">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<!-- Scripts -->
+{% block extra_js %}
+<script src="{% static 'js/jquery.min.js' %}"></script>
+<script>
+    // Actualizar los totales cuando cambian los valores de Debe o Haber
+    $(document).on('input', 'input[name$="-debe"], input[name$="-haber"]', function() {
+        updateTotals();
+    });
+
+    // Manejar eliminación de movimientos
+    $(document).on('change', 'input[type=checkbox][name$="-DELETE"]', function() {
+        updateTotals();
+    });
+
+    document.getElementById('add-movement').addEventListener('click', function() {
+        // Referenciar TOTAL_FORMS correctamente
+        var totalForms = document.getElementById('id_movimientos-TOTAL_FORMS');
+        var currentFormCount = parseInt(totalForms.value);
+
+        // Obtener los valores seleccionados del formulario adicional
+        var cuentaSeleccionada = document.getElementById('id_cuenta_seleccionada').value;
+        var debeSeleccionado = document.getElementById('id_debe_seleccionado').value || 0;
+        var haberSeleccionado = document.getElementById('id_haber_seleccionado').value || 0;
+
+        // Validar que solo uno de los valores (debe o haber) esté establecido y que no sean ambos
+        if ((debeSeleccionado > 0 && haberSeleccionado > 0) || (debeSeleccionado === 0 && haberSeleccionado === 0)) {
+            alert("Debe especificar un valor solo en el debe o solo en el haber, pero no en ambos.");
+            return;
+        }
+
+        // Clonar la plantilla del formulario vacío y reemplazar '__prefix__' por el índice actual
+        var emptyFormTemplate = document.getElementById('empty-form').content.cloneNode(true).firstElementChild;
+        var newFormHtml = emptyFormTemplate.innerHTML.replace(/__prefix__/g, currentFormCount);
+
+        // Crear una nueva fila y asignarle el contenido actualizado
+        var newRow = document.createElement('tr');
+        newRow.classList.add('movimiento-form');
+        newRow.innerHTML = newFormHtml;
+
+        // Asignar cuenta, debe y haber al nuevo formulario
+        $(newRow).find('select[name$="-cuenta"]').val(cuentaSeleccionada);
+        $(newRow).find('input[name$="-debe"]').val(debeSeleccionado);
+        $(newRow).find('input[name$="-haber"]').val(haberSeleccionado);
+
+        // Agregar la nueva fila a la tabla
+        document.getElementById('movimientos-table-body').appendChild(newRow);
+
+        // Actualizar el número total de formularios
+        totalForms.value = currentFormCount + 1;
+
+        // Limpiar los campos de selección
+        document.getElementById('id_cuenta_seleccionada').value = '';
+        document.getElementById('id_debe_seleccionado').value = '';
+        document.getElementById('id_haber_seleccionado').value = '';
+
+        updateTotals();
+    });
+
+    // Llamar a updateTotals cuando se elimina un movimiento y eliminar visualmente la fila
+    $(document).on('change', 'input[type="checkbox"][name$="-DELETE"]', function() {
+        var isChecked = $(this).is(':checked');
+
+        if (isChecked) {
+            // Eliminar visualmente la fila
+            $(this).closest('tr').remove();
+
+            // Actualizar el número total de formularios
+            var totalForms = document.getElementById('id_movimientos-TOTAL_FORMS');
+            totalForms.value = parseInt(totalForms.value) - 1;
+        }
+
+        updateTotals();
+    })
+
+    // Función para actualizar los totales
+    function updateTotals() {
+        var totalDebe = 0.00;
+        var totalHaber = 0.00;
+        $('input[name$="-debe"]').each(function() {
+            if (!$(this).closest('tr').find('input[type="checkbox"][name$="-DELETE"]').is(':checked')) {
+                var value = parseFloat($(this).val()) || 0;
+                totalDebe += value;
+            }
+        });
+        $('input[name$="-haber"]').each(function() {
+            if (!$(this).closest('tr').find('input[type="checkbox"][name$="-DELETE"]').is(':checked')) {
+                var value = parseFloat($(this).val()) || 0;
+                totalHaber += value;
+            }
+        });
+        $('#total-debe').text(totalDebe.toFixed(2));
+        $('#total-haber').text(totalHaber.toFixed(2));
+
+        // Mostrar o esconder mensaje de error de balance y deshabilitar botón de submit
+        if (totalDebe !== totalHaber) {
+            $('#balance-error').show();
+            $('button[type="submit"]').prop('disabled', true);
+        } else {
+            $('#balance-error').hide();
+            $('button[type="submit"]').prop('disabled', false);
+        }
+    }
+</script>
+{% endblock extra_js %}
+{% endblock content %}

@@ -1,0 +1,22 @@
+<!-- documentos/templates/documentos/tipodocumento_form.html -->
+{% extends 'base.html' %}
+{% load tailwind_filters %} 
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow-md">
+    <h1 class="text-3xl font-bold mb-6">{{ title }}</h1>
+
+    <form action="" method="post" class="my-8">
+        {% csrf_token %} {{ form|crispy }}
+
+        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+            Guardar
+        </button>
+        <a href="{% url 'tipodocumento_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+            Cancelar
+        </a>
+    </form>
+</div>
+{% endblock %}

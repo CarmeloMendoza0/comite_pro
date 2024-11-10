@@ -1,0 +1,59 @@
+<!-- comite_pro/reportes/templates/reportes/libro_mayor_pdf.html -->
+{% extends 'base.html' %}
+
+{% block title %}Reporte de Libro Mayor (PDF){% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+    <!-- Encabezado -->
+    <div class="text-center mb-8">
+        <h2 class="text-xl font-bold">COMITÉ PRO-OPERACIÓN ADMINISTRACIÓN Y MANTENIMIENTO DE AGUA POTABLE</h2>
+        <h4 class="text-lg font-semibold mt-2">Libro Mayor del {{ fecha_inicio }} al {{ fecha_fin }}</h4>
+    </div>
+
+    <!-- Tabla de Movimientos -->
+    <table class="min-w-full border border-gray-300">
+        <thead>
+            <tr class="bg-gray-200">
+                <th class="border px-4 py-2">Cuenta</th>
+                <th class="border px-4 py-2">Descripción</th>
+                <th class="border px-4 py-2">Saldo Ant.</th>
+                <th class="border px-4 py-2">Debe</th>
+                <th class="border px-4 py-2">Haber</th>
+                <th class="border px-4 py-2">Saldo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cuenta in reporte_data %}
+            <!-- Mostrar la información de la cuenta en la primera fila, incluyendo el saldo anterior -->
+            <tr class="bg-gray-100">
+                <td class="border px-4 py-2 font-bold">{{ cuenta.codigo_cuenta }}</td>
+                <td class="border px-4 py-2 font-bold">{{ cuenta.nombre_cuenta }}</td>
+                <td class="border px-4 py-2 text-right font-bold">Q {{ cuenta.saldo_anterior|floatformat:2 }}</td>
+                <td class="border px-4 py-2"></td>
+                <td class="border px-4 py-2"></td>
+                <td class="border px-4 py-2"></td>
+            </tr>
+            <!-- Mostrar los movimientos de la cuenta -->
+            {% for movimiento in cuenta.movimientos %}
+            <tr class="border-t">
+                <td class="border px-4 py-2">{{ movimiento.fecha|date:"d/m/Y" }}</td>
+                <td class="border px-4 py-2">{{ movimiento.descripcion }}</td>
+                <td class="border px-4 py-2 text-right"></td>
+                <td class="border px-4 py-2 text-right">Q {{ movimiento.debe|floatformat:2 }}</td>
+                <td class="border px-4 py-2 text-right">Q {{ movimiento.haber|floatformat:2 }}</td>
+                <td class="border px-4 py-2 text-right">Q {{ movimiento.saldo|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            <!-- Mostrar el total de la cuenta -->
+            <tr class="border-t bg-gray-100">
+                <td class="border px-4 py-2 font-bold" colspan="3">Total de {{ cuenta.nombre_cuenta }}</td>
+                <td class="border px-4 py-2 text-right font-bold">Q {{ cuenta.total_debe|floatformat:2 }}</td>
+                <td class="border px-4 py-2 text-right font-bold">Q {{ cuenta.total_haber|floatformat:2 }}</td>
+                <td class="border px-4 py-2 text-right font-bold">Q {{ cuenta.saldo_final|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
