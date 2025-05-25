@@ -27,8 +27,8 @@ urlpatterns = [
     path('catalogos/', include('catalogo_cuentas.urls')),
     path('documentos/', include('documentos.urls')),
     path('transacciones/', include('transacciones.urls')),
-    path('', RedirectView.as_view(url='/usuarios/login/')),  # Redirige a la URL de login
     path('bancos/', include('bancos.urls')),
     path('reportes/', include('reportes.urls')),
     path('terceros/', include('terceros.urls')),
+    path('', RedirectView.as_view(url='/usuarios/login/')),  # Redirige a la URL de login
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
