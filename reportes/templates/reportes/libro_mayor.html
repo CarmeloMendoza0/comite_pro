@@ -1,90 +1,181 @@
+<!--comite_pro/reportes/templates/reportes/libro_mayor.html-->
 {% extends 'base.html' %}
 
 {% block title %}Reporte de Libro Mayor{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow-md">
-    <h1 class="text-3xl font-semibold mb-6 text-center text-gray-800">Reporte de Libro Mayor</h1>
-
-    <form method="get" class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-        <div class="flex flex-col">
-            <label for="cuenta" class="text-gray-600 font-medium mb-2">Cuenta Contable:</label>
-            <select name="cuenta" class="form-select px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:border-blue-500">
-                <option value="">Todas las Cuentas</option>
-                {% for cuenta in cuentas %}
-                    <option value="{{ cuenta.codigo }}" {% if cuenta.codigo == cuenta_seleccionada %}selected{% endif %}>{{ cuenta.codigo }} - {{ cuenta.nombre }}</option>
-                {% endfor %}
-            </select>
-        </div>
-    
-        <div class="flex flex-col">
-            <label for="fecha_inicio" class="text-gray-600 font-medium mb-2">Fecha Inicio:</label>
-            <input type="date" name="fecha_inicio" value="{{ fecha_inicio }}" class="form-input px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:border-blue-500">
-        </div>
-    
-        <div class="flex flex-col">
-            <label for="fecha_fin" class="text-gray-600 font-medium mb-2">Fecha Fin:</label>
-            <input type="date" name="fecha_fin" value="{{ fecha_fin }}" class="form-input px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:border-blue-500">
-        </div>
-    
-        <div class="flex flex-col sm:flex-row items-center w-full sm:w-auto">
-            <button type="submit" class="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all">Filtrar</button>
-        </div>
-
-        <div class="flex flex-col sm:flex-row items-center w-full sm:w-auto">
-            <a href="{% url 'exportar_libro_mayor_pdf' %}?fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}&cuenta={{ cuenta_seleccionada }}"
-            class="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-all">
-                Exportar a PDF
+<!-- Header fijo con sombra sutil -->
+<div class="sticky top-0 bg-white z-10 px-6 pb-4 shadow-sm">
+    <div class="flex justify-between items-center py-4">
+        <h1 class="text-2xl font-bold text-gray-800">Reporte de Libro Mayor</h1>
+        
+        <!-- Botones de exportación -->
+        <div class="flex gap-3">
+            <a href="{% url 'exportar_libro_mayor_pdf' %}?fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}&cuenta={{ cuenta_seleccionada }}" 
+                class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M4 4v12h12V7.414L12.586 4H4zm14 14H2V2h12l4 4v12z"/>
+                </svg>
+                <span class="hidden lg:inline">Exportar PDF</span>
+                <span class="lg:hidden">PDF</span>
+            </a>
+            
+            <a href="{% url 'exportar_libro_mayor_excel' %}?fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}&cuenta={{ cuenta_seleccionada }}" 
+                class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M15 2H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 6h-3v3h3v2h-3v3h-2v-3H6v-2h3V8H6V6h3V3h2v3h3v2z"/>
+                </svg>
+                <span class="hidden lg:inline">Exportar Excel</span>
+                <span class="lg:hidden">Excel</span>
             </a>
         </div>
-    </form>    
-
-    
-
-    <div class="overflow-x-auto">
-        <table class="min-w-full border-collapse border border-gray-300">
-            <thead>
-                <tr class="bg-gray-200">
-                    <th class="border px-4 py-2">Cuenta</th>
-                    <th class="border px-4 py-2">Descripción</th>
-                    <th class="border px-4 py-2">Saldo Ant.</th>
-                    <th class="border px-4 py-2">Debe</th>
-                    <th class="border px-4 py-2">Haber</th>
-                    <th class="border px-4 py-2">Saldo</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for cuenta in reporte_data %}
-                <tr class="bg-gray-100">
-                    <!-- Fila inicial para mostrar el saldo anterior de la cuenta -->
-                    <td class="border px-4 py-2 font-bold">{{ cuenta.codigo_cuenta }}</td>
-                    <td class="border px-4 py-2 font-bold">{{ cuenta.nombre_cuenta }}</td>
-                    <td class="border px-4 py-2 text-right font-bold">Q {{ cuenta.saldo_anterior|floatformat:2 }}</td>
-                    <td class="border px-4 py-2"></td>
-                    <td class="border px-4 py-2"></td>
-                    <td class="border px-4 py-2"></td>
-                </tr>
-                <!-- Mostrar cada movimiento -->
-                {% for movimiento in cuenta.movimientos %}
-                <tr class="border-t">
-                    <td class="border px-4 py-2">{{ movimiento.fecha|date:"d/m/Y" }}</td>
-                    <td class="border px-4 py-2">{{ movimiento.descripcion }}</td>
-                    <td class="border px-4 py-2 text-right">Q {{ movimiento.saldo_anterior|floatformat:2 }}</td>
-                    <td class="border px-4 py-2 text-right">Q {{ movimiento.debe|floatformat:2 }}</td>
-                    <td class="border px-4 py-2 text-right">Q {{ movimiento.haber|floatformat:2 }}</td>
-                    <td class="border px-4 py-2 text-right">Q {{ movimiento.saldo|floatformat:2 }}</td>
-                </tr>
-                {% endfor %}
-                <!-- Fila de resumen de totales de la cuenta -->
-                <tr class="border-t bg-gray-100">
-                    <td class="border px-4 py-2 font-bold" colspan="3">Total de {{ cuenta.nombre_cuenta }}</td>
-                    <td class="border px-4 py-2 text-right font-bold">Q {{ cuenta.total_debe|floatformat:2 }}</td>
-                    <td class="border px-4 py-2 text-right font-bold">Q {{ cuenta.total_haber|floatformat:2 }}</td>
-                    <td class="border px-4 py-2 text-right font-bold">Q {{ cuenta.saldo_final|floatformat:2 }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
     </div>
 </div>
+
+<!-- Contenedor principal con espaciado -->
+<div class="px-6">
+    <!-- Formulario de filtros -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Filtros de Búsqueda</h2>
+        <form method="get" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div>
+                    <label for="cuenta" class="block text-sm font-medium text-gray-700 mb-1">
+                        Cuenta Contable
+                    </label>
+                    <select name="cuenta" 
+                            id="cuenta"
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        <option value="">Todas las Cuentas</option>
+                        {% for cuenta in cuentas %}
+                            <option value="{{ cuenta.codigo }}" {% if cuenta.codigo == cuenta_seleccionada %}selected{% endif %}>
+                                {{ cuenta.codigo }} - {{ cuenta.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="fecha_inicio" class="block text-sm font-medium text-gray-700 mb-1">
+                        Fecha Inicio
+                    </label>
+                    <input type="date" 
+                        name="fecha_inicio" 
+                        id="fecha_inicio"
+                        value="{{ fecha_inicio }}" 
+                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                </div>
+                
+                <div>
+                    <label for="fecha_fin" class="block text-sm font-medium text-gray-700 mb-1">
+                        Fecha Fin
+                    </label>
+                    <input type="date" 
+                        name="fecha_fin" 
+                        id="fecha_fin"
+                        value="{{ fecha_fin }}" 
+                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                </div>
+                
+                <div>
+                    <button type="submit" 
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                        </svg>
+                        Filtrar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>   
+
+    <!-- Tabla de resultados -->
+    <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+        <div class="overflow-x-auto">
+            <table class="min-w-full border border-gray-300">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="border px-4 py-2">Cuenta</th>
+                        <th class="border px-4 py-2">Descripción</th>
+                        <th class="border px-4 py-2">Saldo Ant.</th>
+                        <th class="border px-4 py-2">Debe</th>
+                        <th class="border px-4 py-2">Haber</th>
+                        <th class="border px-4 py-2">Saldo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cuenta in reporte_data %}
+                    <tr class="bg-gray-100">
+                        <!-- Fila inicial para mostrar el saldo anterior de la cuenta -->
+                        <td class="border px-4 py-2 font-bold">{{ cuenta.codigo_cuenta }}</td>
+                        <td class="border px-4 py-2 font-bold">{{ cuenta.nombre_cuenta }}</td>
+                        <td class="border px-4 py-2 text-right font-bold valor-monetario">Q{{ cuenta.saldo_anterior|stringformat:".2f" }}</td>
+                        <td class="border px-4 py-2"></td>
+                        <td class="border px-4 py-2"></td>
+                        <td class="border px-4 py-2"></td>
+                    </tr>
+                    <!-- Mostrar cada movimiento -->
+                    {% for movimiento in cuenta.movimientos %}
+                    <tr class="border-t">
+                        <td class="border px-4 py-2">{{ movimiento.fecha|date:"d/m/Y" }}</td>
+                        <td class="border px-4 py-2">{{ movimiento.descripcion }}</td>
+                        <td class="border px-4 py-2 text-right valor-monetario">Q{{ movimiento.saldo_anterior|stringformat:".2f" }}</td>
+                        <td class="border px-4 py-2 text-right valor-monetario">Q{{ movimiento.debe|stringformat:".2f" }}</td>
+                        <td class="border px-4 py-2 text-right valor-monetario">Q{{ movimiento.haber|stringformat:".2f" }}</td>
+                        <td class="border px-4 py-2 text-right valor-monetario">Q{{ movimiento.saldo|stringformat:".2f" }}</td>
+                    </tr>
+                    {% endfor %}
+                    <!-- Fila de resumen de totales de la cuenta -->
+                    <tr class="border-t bg-gray-100">
+                        <td class="border px-4 py-2 font-bold" colspan="3">Total de {{ cuenta.nombre_cuenta }}</td>
+                        <td class="border px-4 py-2 text-right font-bold valor-monetario">Q{{ cuenta.total_debe|stringformat:".2f" }}</td>
+                        <td class="border px-4 py-2 text-right font-bold valor-monetario">Q{{ cuenta.total_haber|stringformat:".2f" }}</td>
+                        <td class="border px-4 py-2 text-right font-bold valor-monetario">Q{{ cuenta.saldo_final|stringformat:".2f" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if reporte_data %}
+    <div class="mt-6 text-sm text-gray-500">
+        Mostrando {{ reporte_data|length }} cuenta{{ reporte_data|length|pluralize:"s" }} 
+        {% if fecha_inicio and fecha_fin %}
+            desde {{ fecha_inicio }} hasta {{ fecha_fin }}
+        {% endif %}
+        {% if cuenta_seleccionada %}
+            para la cuenta {{ cuenta_seleccionada }}
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+    // Ejecutar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+        // Identificar y verificar todos los elementos con valores monetarios
+        const valoresMonetarios = document.querySelectorAll('.valor-monetario');
+        
+        // Verificar que se encontraron elementos
+        if (valoresMonetarios.length > 0) {
+            console.log(`Se encontraron ${valoresMonetarios.length} valores monetarios en el Libro Mayor`);
+            
+            // El formato stringformat:.2f ya utiliza punto como separador decimal,
+            // por lo que esta función es principalmente para verificación
+            
+            // Revisar algunos valores como ejemplo para confirmar formato correcto
+            const muestraValores = Array.from(valoresMonetarios).slice(0, 3);
+            muestraValores.forEach(function(elemento, index) {
+                console.log(`Muestra ${index+1}: "${elemento.textContent}"`);
+            });
+            
+            console.log("Finalizada la verificación de formato decimal en Libro Mayor");
+        } else {
+            console.warn("No se encontraron elementos con la clase 'valor-monetario' en el Libro Mayor");
+        }
+    });
+</script>
+{% endblock extra_js %}
 {% endblock %}

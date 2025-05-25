@@ -22,7 +22,7 @@ from django.views.generic import RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('empresas/', include('empresa.urls')),
+    path('empresa/', include('empresa.urls')),
     path('usuarios/', include('usuarios.urls')),
     path('catalogos/', include('catalogo_cuentas.urls')),
     path('documentos/', include('documentos.urls')),
@@ -30,4 +30,5 @@ urlpatterns = [
     path('', RedirectView.as_view(url='/usuarios/login/')),  # Redirige a la URL de login
     path('bancos/', include('bancos.urls')),
     path('reportes/', include('reportes.urls')),
+    path('terceros/', include('terceros.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

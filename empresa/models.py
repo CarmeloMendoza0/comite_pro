@@ -31,6 +31,7 @@ class PeriodoContable(models.Model):
         if self.fecha_fin <= self.fecha_inicio:
             raise ValidationError('La fecha de fin debe ser posterior a la fecha de inicio.')
 
+    # Sobrescribir el método save para ejecutar las validaciones antes de guardar
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)

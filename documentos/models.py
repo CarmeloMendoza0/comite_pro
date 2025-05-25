@@ -2,6 +2,8 @@
 from django.db import models
 from django.forms import ValidationError
 from empresa.models import Empresa
+from terceros.models import Proveedor
+from terceros.models import Persona, Proveedor
 
 class TipoDocumento(models.Model):
     TIPO_CHOICES = [
@@ -27,6 +29,8 @@ class DocComprobante(models.Model):
 
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='documentos')
     tipo_documento = models.ForeignKey(TipoDocumento, on_delete=models.CASCADE, related_name='documentos')
+    cliente = models.ForeignKey(Persona, on_delete=models.SET_NULL, blank=True, null=True, related_name='comprobantes', verbose_name="Cliente")
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, blank=True, null=True, related_name='comprobantes', verbose_name="Proveedor")
     descripcion = models.CharField(max_length=255, blank=True, null=True, verbose_name="Descripción")
     numero_documento = models.CharField(max_length=50, unique=True, verbose_name="Documento")
     serie_documento = models.CharField(max_length=50, unique=True, blank=True, null=True, verbose_name="Serie")

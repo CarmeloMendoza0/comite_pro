@@ -3,9 +3,15 @@
 {% block title %}Plan de Cuentas{% endblock %}
 
 {% block content %}
-<div class="bg-white p-6 rounded-lg shadow-md">
-    <h1 class="text-3xl font-bold mb-6 text-gray-700 border-b pb-4">Plan de Cuentas</h1>
 
+<!-- Header fijo con sombra sutil -->
+<div class="sticky top-0 bg-white z-10 px-6 pb-4 shadow-sm">
+    <div class="flex justify-between items-center py-4">
+        <h1 class="text-2xl font-bold text-gray-800">Plan de Cuentas</h1>
+    </div>
+</div>
+
+<div class="bg-white p-6 rounded-lg shadow-md">
     <!-- Función recursiva para mostrar subcuentas -->
     <ul class="list-none pl-0">
         {% for cuenta_info in cuentas_con_subcuentas %}

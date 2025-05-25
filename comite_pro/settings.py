@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'documentos',
     'transacciones',
     'bancos',
-    'reportes'
+    'reportes',
+    'terceros'
 ]
 
 MIDDLEWARE = [
@@ -86,8 +87,12 @@ WSGI_APPLICATION = 'comite_pro.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'comite_pro_db',
+        'USER': 'postgres',
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'cmc10025'),
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
@@ -129,9 +134,9 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 # Directorio donde están los archivos estáticos adicionales del proyecto
-STATICFILES_DIRS = [
+""" STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
-]
+] """
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -144,7 +149,7 @@ CRISPY_TEMPLATE_PACK = "tailwind"
 
 LOGOUT_REDIRECT_URL = '/usuarios/login/'
 
-LOGIN_REDIRECT_URL = '/empresas/'
+LOGIN_REDIRECT_URL = '/empresa/dashboard/'
 
 LOGIN_URL = '/usuarios/login/'
 

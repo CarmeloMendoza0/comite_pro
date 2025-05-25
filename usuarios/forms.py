@@ -1,3 +1,4 @@
+#comite_pro/usuarios/forms.py
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User, Group
@@ -18,6 +19,19 @@ class CustomUserCreationForm(UserCreationForm):
             'password1': forms.PasswordInput(attrs={'class': 'form-control'}),
             'password2': forms.PasswordInput(attrs={'class': 'form-control'}),
         }
+
+    def save(self, commit=True):
+        """Sobrescribir save para asignar el grupo/rol"""
+        user = super().save(commit=False)
+        
+        if commit:
+            user.save()
+            # Asignar el grupo seleccionado
+            rol = self.cleaned_data.get('rol')
+            if rol:
+                user.groups.add(rol)
+        
+        return user
 
 class CustomAuthenticationForm(AuthenticationForm):
     username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))

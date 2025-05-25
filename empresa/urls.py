@@ -1,9 +1,12 @@
+#comite_pro/empresa/urls.py
 from django.urls import path
-from .views import EmpresaFormView, PeriodoContableCreateView, PeriodoContableListView, EmpresasListView, EmpresaUpdateView, CambiarEstadoPeriodoView
+from .views import EmpresaFormView, PeriodoContableCreateView, PeriodoContableListView, EmpresasListView, EmpresaUpdateView, CambiarEstadoPeriodoView, DashboardView
 
 urlpatterns = [
-     # URLs para empresas
-    path('', EmpresasListView.as_view(), name="empresa_list"),
+    # dashboard 
+    path('', DashboardView.as_view(), name='dashboard'),
+    # URLs para empresas
+    path('emp', EmpresasListView.as_view(), name="empresa_list"),
     path('crear/', EmpresaFormView.as_view(), name="empresa_create"),
     path('editar/<int:pk>/', EmpresaUpdateView.as_view(), name='empresa_update'),
     path('cambiar_estado/<int:pk>/', CambiarEstadoPeriodoView.as_view(), name='cambiar_estado_periodo'),

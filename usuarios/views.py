@@ -25,7 +25,7 @@ class CustomLoginView(LoginView):
     def dispatch(self, request, *args, **kwargs):
         # Si el usuario ya está autenticado, redirigirlo al dashboard
         if request.user.is_authenticated:
-            return redirect('empresa_list')  # Redirigir a la vista o página deseada
+            return redirect('dashboard')  # Redirigir a la vista o página deseada
         return super().dispatch(request, *args, **kwargs)
     
 # Decorador aplicado para verificar si el usuario es administrador
@@ -47,12 +47,22 @@ class RegistrarUsuarioView(LoginRequiredMixin, generic.CreateView):
             user.groups.add(group)
 
         return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Crear nueva cuenta'
+        return context
 
 @method_decorator(user_passes_test(is_admin), name='dispatch')
 class ListaUsuariosView(LoginRequiredMixin, ListView):
     model = User
     template_name = 'usuarios/usuarios_list.html'
     context_object_name = 'usuarios'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Lista de Usuarios'
+        return context
 
 # Decorador aplicado para verificar si el usuario es administrador
 @method_decorator(user_passes_test(is_admin), name='dispatch')
@@ -84,3 +94,8 @@ class EditarUsuarioCompletoView(LoginRequiredMixin, UpdateView):
         
         user.save()
         return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Editar de Usuario'
+        return context

@@ -1,0 +1,289 @@
+<!--comite_pro/empresa/templates/empresa/dashboard.html-->
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Comité Pro{% endblock %}
+
+{% block content %}
+
+<div class="flex flex-col flex-1 overflow-hidden">
+    <!-- Main content -->
+    <main class="flex-1 overflow-y-auto p-6">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">Dashboard</h1>
+            <p class="text-gray-500">Bienvenido al panel de control del sistema contable</p>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Ingresos Totales</p>
+                <h3 class="text-2xl font-bold">Q{{ total_ingresos|stringformat:".2f" }}</h3>
+                <div class="flex items-center mt-1 {% if porcentaje_ingresos >= 0 %}text-green-500{% else %}text-red-500{% endif %} text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    {% if porcentaje_ingresos >= 0 %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                    {% else %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                    {% endif %}
+                </svg>
+                <span>{{ porcentaje_ingresos|stringformat:".1f" }}% vs mes anterior</span>
+                </div>
+            </div>
+            <div class="bg-blue-100 p-3 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+            </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Gastos Totales</p>
+                <h3 class="text-2xl font-bold">Q{{ total_gastos|stringformat:".2f" }}</h3>
+                <div class="flex items-center mt-1 {% if porcentaje_gastos < 0 %}text-green-500{% else %}text-red-500{% endif %} text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    {% if porcentaje_gastos < 0 %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                    {% else %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                    {% endif %}
+                </svg>
+                <span>{{ porcentaje_gastos|stringformat:".1f" }}% vs mes anterior</span>
+                </div>
+            </div>
+            <div class="bg-red-100 p-3 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+            </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Donaciones</p>
+                <h3 class="text-2xl font-bold">Q{{ total_donaciones|stringformat:".2f" }}</h3>
+                <div class="flex items-center mt-1 {% if porcentaje_donaciones >= 0 %}text-green-500{% else %}text-red-500{% endif %} text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    {% if porcentaje_donaciones >= 0 %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                    {% else %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                    {% endif %}
+                </svg>
+                <span>{{ porcentaje_donaciones|stringformat:".1f" }}% vs mes anterior</span>
+                </div>
+            </div>
+            <div class="bg-green-100 p-3 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Saldo Actual</p>
+                <h3 class="text-2xl font-bold">Q{{ saldo_actual|stringformat:".2f" }} </h3>
+                <div class="flex items-center mt-1 {% if porcentaje_saldo >= 0 %}text-green-500{% else %}text-red-500{% endif %} text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    {% if porcentaje_saldo >= 0 %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                    {% else %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                    {% endif %}
+                </svg>
+                <span>{{ porcentaje_saldo|stringformat:".1f" }}% vs mes anterior</span>
+                </div>
+            </div>
+            <div class="bg-purple-100 p-3 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium">Ingresos vs Gastos</h3>
+            <select id="periodo-ingresos-gastos" class="text-sm border rounded p-1">
+                <option value="year">Este Año</option>
+                <option value="month">Este Mes</option>
+                <option value="quarter">Último Trimestre</option>
+            </select>
+            </div>
+            <canvas id="ingresos-gastos-chart" height="300"></canvas>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium">Distribución de Gastos</h3>
+            <select id="periodo-gastos" class="text-sm border rounded p-1">
+                <option value="month">Este Mes</option>
+                <option value="lastMonth">Último Mes</option>
+                <option value="year">Este Año</option>
+            </select>
+            </div>
+            <canvas id="gastos-chart" height="300"></canvas>
+        </div>
+        </div>
+
+        <!-- Últimas transacciones -->
+        <div class="bg-white rounded-lg shadow mb-6">
+        <div class="flex items-center justify-between p-4 border-b">
+            <h3 class="text-lg font-medium">Últimas Transacciones</h3>
+            <a href="#" class="text-blue-600 hover:underline text-sm">Ver todas</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for transaccion in ultimas_transacciones %}
+                <tr>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">{{ transaccion.descripcion }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-500">{{ transaccion.fecha|date:"d/m/Y" }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    {% if transaccion.tipo_transaccion == 'Ingreso' %}
+                        bg-green-100 text-green-800
+                    {% else %}
+                        bg-red-100 text-red-800
+                    {% endif %}">
+                    {{ transaccion.tipo_transaccion }}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    Q{{ transaccion.monto_total|floatformat:2 }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-500">
+                    {% if transaccion.comprobante %}
+                        {{ transaccion.comprobante.estado }}
+                    {% else %}
+                        Procesado
+                    {% endif %}
+                    </div>
+                </td>
+                </tr>
+                {% empty %}
+                <tr>
+                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                    No hay transacciones recientes
+                </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            </table>
+        </div>
+        </div>
+    </main>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Datos para el gráfico de Ingresos vs Gastos
+        const ingresosGastosCtx = document.getElementById('ingresos-gastos-chart').getContext('2d');
+        const ingresosGastosChart = new Chart(ingresosGastosCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ meses|safe }},
+            datasets: [
+            {
+                label: 'Ingresos',
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                borderColor: 'rgb(59, 130, 246)',
+                borderWidth: 1,
+                data: {{ datos_ingresos|safe }}
+            },
+            {
+                label: 'Gastos',
+                backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                borderColor: 'rgb(239, 68, 68)',
+                borderWidth: 1,
+                data: {{ datos_gastos|safe }}
+            }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                callback: function(value) {
+                    return 'Q' + value.toLocaleString();
+                }
+                }
+            }
+            }
+        }
+        });
+
+        // Datos para el gráfico de Distribución de Gastos
+        const gastosCtx = document.getElementById('gastos-chart').getContext('2d');
+        const gastosChart = new Chart(gastosCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ categorias_gastos|safe }},
+            datasets: [{
+            data: {{ datos_categorias_gastos|safe }},
+            backgroundColor: [
+                'rgba(59, 130, 246, 0.7)',
+                'rgba(239, 68, 68, 0.7)',
+                'rgba(16, 185, 129, 0.7)',
+                'rgba(245, 158, 11, 0.7)',
+                'rgba(139, 92, 246, 0.7)',
+                'rgba(236, 72, 153, 0.7)'
+            ],
+            borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+            legend: {
+                position: 'right',
+            }
+            }
+        }
+        });
+
+        // Manejar los cambios en los selectores de período
+        document.getElementById('periodo-ingresos-gastos').addEventListener('change', function() {
+        // Aquí iría el código para actualizar el gráfico de ingresos vs gastos según el período seleccionado
+        // Esto requeriría una llamada AJAX al backend para obtener nuevos datos
+        });
+
+        document.getElementById('periodo-gastos').addEventListener('change', function() {
+        // Aquí iría el código para actualizar el gráfico de distribución de gastos según el período seleccionado
+        // Esto requeriría una llamada AJAX al backend para obtener nuevos datos
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

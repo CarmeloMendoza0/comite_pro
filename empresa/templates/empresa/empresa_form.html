@@ -1,3 +1,4 @@
+<!--comite_pro/empresa/templates/empresa/empresa_form.html-->
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 {% load tailwind_filters %} 
@@ -5,19 +6,73 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="max-w-lg mx-auto p-10 bg-white rounded-lg shadow-md">
-    <h1 class="text-3xl text-center font-bold mb-6">{{ title }}</h1>
-    
-    <form action="" method="POST" class="my-8">
-        {% csrf_token %} {{ form|crispy }}
-        
-        <button type="submit" class="bg-blue-500 text-white px-4 py-2 font-bold rounded hover:bg-blue-600">
-            Guardar
-        </button>
-        <a href="{% url 'empresa_list' %}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+<!-- Header fijo con diseño profesional -->
+<div class="sticky top-0 bg-white z-10 shadow-sm">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-2xl font-bold text-gray-800 px-6 py-6">{{ title }}</h1>
+    </div>
+</div>
+
+<!-- Contenedor principal con mejor espaciado -->
+<div class="max-w-3xl mx-auto px-6 py-4">
+    <div class="bg-white rounded-lg shadow-md">
+        <!-- Formulario -->
+        <form action="" method="POST" class="p-8">
+            {% csrf_token %}
             
-            Cancelar
-        </a>
-    </form>
+            <!-- Campos del formulario con espaciado uniforme -->
+            <div class="space-y-4">
+                {{ form|crispy }}
+            </div>
+            
+            <!-- Contenedor de botones mejorado -->
+            <div class="flex items-center justify-end gap-4 mt-8 pt-6 border-t border-gray-200">
+                <a href="{% url 'empresa_list' %}" 
+                    class="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150">
+                    Cancelar
+                </a>
+                <button type="submit" 
+                        class="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Guardar
+                    </span>
+                </button>
+            </div>
+        </form>
+        
+        <!-- Información adicional opcional -->
+        {% if form.errors %}
+        <div class="px-8 pb-6">
+            <div class="rounded-md bg-red-50 p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">
+                            Por favor corrige los errores en el formulario
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Breadcrumb o ruta de navegación -->
+    <div class="mt-6 text-sm text-gray-500">
+        <nav class="flex items-center gap-2">
+            <a href="{% url 'empresa_list' %}" class="hover:text-gray-700">Lista de Empresas</a>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+            <span class="text-gray-700">{{ title }}</span>
+        </nav>
+    </div>
 </div>
 {% endblock %}

@@ -4,7 +4,6 @@ from django import forms
 from .models import Transaccion, Movimiento
 from django.forms import inlineformset_factory
 
-
 class TransaccionForm(forms.ModelForm):
     class Meta:
         model = Transaccion
@@ -45,8 +44,6 @@ class TransaccionForm(forms.ModelForm):
         if tipo_operacion == 'Transacción':
             if not cleaned_data.get('monto_total'):
                 self.add_error('monto_total', 'Debe especificar el monto total para una transacción.')
-            if not cleaned_data.get('tipo_transaccion'):
-                self.add_error('tipo_transaccion', 'Debe seleccionar el tipo de transacción (Ingreso o Egreso).')
         return cleaned_data
 
 
@@ -69,6 +66,12 @@ MovimientoFormSet = inlineformset_factory(
 )
 
 class PolizaForm(forms.ModelForm):
+    # la fecha al formato esperado por el input HTML
+    fecha = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-date'}),
+        input_formats=['%Y-%m-%d']
+    )
+
     class Meta:
         model = Transaccion
         fields = [
@@ -77,7 +80,7 @@ class PolizaForm(forms.ModelForm):
         widgets = {
             'empresa': forms.Select(attrs={'class': 'form-select'}),
             'descripcion': forms.TextInput(attrs={'class': 'form-input'}),
-            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-date'}),
+            # La definición del widget para fecha se hace arriba
             'periodo': forms.Select(attrs={'class': 'form-select'}),
             'tipo_operacion': forms.Select(attrs={'class': 'form-select'}),
             'tipo_documento': forms.Select(attrs={'class': 'form-select'}),

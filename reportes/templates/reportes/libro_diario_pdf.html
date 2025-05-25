@@ -1,47 +1,238 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libro Diario - PDF</title>
+    <style>
+        /* Reset y configuración base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-{% block title %}Reporte de Libro Diario (PDF){% endblock %}
+        /* Configuración de página */
+        @page {
+            size: A4;
+            margin: 1.5cm;
+            @top-center {
+                content: "Libro Diario - Página " counter(page);
+                font-family: 'Times New Roman', serif;
+                font-size: 10pt;
+            }
+        }
 
-{% block content %}
-<!-- Encabezado -->
-<div class="max-w-4xl mx-auto p-6">
-    <div class="text-center mb-8">
-        <h2 class="text-xl font-bold">COMITÉ PRO-OPERACIÓN ADMINISTRACIÓN Y MANTENIMIENTO DE AGUA POTABLE</h2>
-        <h4 class="text-lg font-semibold mt-2">Libro Diario del {{ fecha_inicio }} al {{ fecha_fin }}</h4>
+        /* Tipografía principal */
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            color: #000;
+        }
+
+        /* Encabezados */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+
+        .header h1 {
+            font-family: 'Arial', sans-serif;
+            font-size: 16pt;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .header h2 {
+            font-family: 'Times New Roman', serif;
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .fecha-reporte {
+            font-family: 'Arial', sans-serif;
+            font-size: 12pt;
+            font-style: italic;
+            color: #333;
+        }
+
+        /* Tabla principal */
+        .tabla-diario {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .tabla-diario th {
+            background-color: #f0f0f0;
+            border: 2px solid #333;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12pt;
+        }
+
+        .tabla-diario td {
+            border: 1px solid #666;
+            padding: 6px 8px;
+            vertical-align: top;
+        }
+
+        /* Estilos específicos por columna */
+        .col-numero {
+            width: 12%;
+            text-align: center;
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+
+        .col-descripcion {
+            width: 50%;
+            text-align: left;
+        }
+
+        .col-debe, .col-haber {
+            width: 19%;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Filas especiales */
+        .fila-partida {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+
+        .fila-cuenta {
+            background-color: #fff;
+        }
+
+        .fila-total {
+            background-color: #e8e8e8;
+            font-weight: bold;
+            border-top: 2px solid #333;
+        }
+
+        /* Valores monetarios */
+        .valor-monetario {
+            font-family: 'Courier New', monospace;
+            font-weight: normal;
+        }
+
+        .valor-total {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 12pt;
+        }
+
+        /* Separadores de transacciones */
+        .separador-transaccion {
+            border-top: 3px solid #000 !important;
+        }
+
+        /* Evitar saltos de página dentro de transacciones */
+        .transaccion-grupo {
+            page-break-inside: avoid;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 10pt;
+            color: #666;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Encabezado del reporte -->
+    <div class="header">
+        <h1>COMITÉ PRO-OPERACIÓN ADMINISTRACIÓN Y MANTENIMIENTO DE AGUA POTABLE</h1>
+        <h2>LIBRO DIARIO</h2>
+        <div class="fecha-reporte">
+            {% if fecha_inicio and fecha_fin %}
+                Período: {{ fecha_inicio|date:"d/m/Y" }} al {{ fecha_fin|date:"d/m/Y" }}
+            {% else %}
+                Todos los registros
+            {% endif %}
+        </div>
     </div>
-    <table class="min-w-full border border-gray-400">
+
+    <!-- Tabla principal -->
+    <table class="tabla-diario">
         <thead>
-            <tr class="bg-gray-200">
-                <th class="border border-gray-400 px-4 py-2">No.</th>
-                <th class="border border-gray-400 px-4 py-2">Descripción</th>
-                <th class="border border-gray-400 px-4 py-2">Debe</th>
-                <th class="border border-gray-400 px-4 py-2">Haber</th>
+            <tr>
+                <th class="col-numero">No.</th>
+                <th class="col-descripcion">Descripción</th>
+                <th class="col-debe">Debe (Q)</th>
+                <th class="col-haber">Haber (Q)</th>
             </tr>
         </thead>
         <tbody>
             {% for transaccion in reporte_data %}
-            <tr class="border-t">
-                <!-- Día de la transacción -->
-                <td class="border border-gray-400 px-4 py-2" rowspan="{{ transaccion.fecha|length|add:6 }}" rowspan="{{ transaccion.movimientos|length|add:2 }}">Día {{ transaccion.fecha|date:"d/m/Y" }}</td>
-                <!-- Descripción de la partida y número de la partida -->
-                <td class="border border-gray-400 px-4 py-2 font-bold">Partida #{{ forloop.counter }}: {{ transaccion.descripcion }}</td>
-                <td class="border border-gray-400 px-4 py-2"></td>
-                <td class="border border-gray-400 px-4 py-2"></td>
-            </tr>
-            {% for movimiento in transaccion.movimientos %}
-            <tr class="border-t">
-                <td class="border border-gray-400 px-4 py-2">{{ movimiento.cuenta }}</td>
-                <td class="border border-gray-400 px-4 py-2 text-right">Q {{ movimiento.debe|floatformat:2 }}</td>
-                <td class="border border-gray-400 px-4 py-2 text-right">Q {{ movimiento.haber|floatformat:2 }}</td>
-            </tr>
-            {% endfor %}
-            <tr class="border-t bg-gray-100">
-                <td class="border border-gray-400 px-4 py-2 font-bold">Total</td>
-                <td class="border border-gray-400 px-4 py-2 text-right font-bold">Q {{ transaccion.total_debe|floatformat:2 }}</td>
-                <td class="border border-gray-400 px-4 py-2 text-right font-bold">Q {{ transaccion.total_haber|floatformat:2 }}</td>
-            </tr>
+                <!-- Inicio del grupo de transacción -->
+                <tr class="transaccion-grupo {% if not forloop.first %}separador-transaccion{% endif %}">
+                    <!-- Columna de fecha/día -->
+                    <td class="col-numero" rowspan="{{ transaccion.movimientos|length|add:2 }}">
+                        <strong>Día</strong><br>
+                        {{ transaccion.fecha|date:"d/m/Y" }}
+                    </td>
+                    <!-- Descripción de la partida -->
+                    <td class="col-descripcion fila-partida">
+                        <strong>Partida #{{ forloop.counter }}:</strong> {{ transaccion.descripcion }}
+                    </td>
+                    <td class="col-debe"></td>
+                    <td class="col-haber"></td>
+                </tr>
+                
+                <!-- Movimientos de la transacción -->
+                {% for movimiento in transaccion.movimientos %}
+                <tr class="fila-cuenta">
+                    <td class="col-descripcion">
+                        &nbsp;&nbsp;&nbsp;&nbsp;{{ movimiento.cuenta }}
+                    </td>
+                    <td class="col-debe valor-monetario">
+                        {% if movimiento.debe %}{{ movimiento.debe|stringformat:".2f" }}{% endif %}
+                    </td>
+                    <td class="col-haber valor-monetario">
+                        {% if movimiento.haber %}{{ movimiento.haber|stringformat:".2f" }}{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                
+                <!-- Fila de totales -->
+                <tr class="fila-total">
+                    <td class="col-descripcion">
+                        <strong>&nbsp;&nbsp;&nbsp;&nbsp;TOTAL PARTIDA #{{ forloop.counter }}</strong>
+                    </td>
+                    <td class="col-debe valor-total">
+                        {{ transaccion.total_debe|stringformat:".2f" }}
+                    </td>
+                    <td class="col-haber valor-total">
+                        {{ transaccion.total_haber|stringformat:".2f" }}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 20px; font-style: italic;">
+                        No se encontraron transacciones para el período seleccionado
+                    </td>
+                </tr>
             {% endfor %}
         </tbody>
     </table>
-</div>
-{% endblock %}
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Reporte generado el {{ "now"|date:"d/m/Y H:i" }}</p>
+        <p>Sistema Contable - Comité Pro-Operación</p>
+    </div>
+</body>
+</html>

@@ -1,80 +1,188 @@
 <!-- transacciones/templates/transacciones/poliza_list.html -->
-
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}Lista de Pólizas{% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-4">Lista de Pólizas</h1>
-
-    <!-- Botón para registrar una nueva póliza -->
-    <div class="mb-4">
-        <a href="{% url 'registrar_poliza' %}" class="bg-blue-500 text-white py-2 px-4 rounded-lg">Registrar Nueva Póliza</a>
+<!-- Header fijo con título, búsqueda y botón en una línea -->
+<div class="sticky top-0 bg-white py-1 z-10 shadow-sm border-b border-gray-200">
+    <div class="px-6 py-4">
+        <div class="flex items-center gap-4">
+            <!-- Título -->
+            <h1 class="text-2xl font-bold text-gray-800 flex-shrink-0">Lista de Pólizas</h1>
+            
+            <!-- Búsqueda (centrada y expandible) -->
+            <form method="get" action="" class="flex-grow max-w-2xl">
+                <div class="flex items-center">
+                    <div class="relative flex-grow">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <input type="text" name="query" placeholder="Buscar póliza..." value="{{ request.GET.query }}"
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-l-lg focus:ring-blue-500 focus:border-blue-500 text-sm h-10">
+                    </div>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-lg transition duration-200 font-medium text-sm h-10">
+                        Buscar
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Botón de crear -->
+            <a href="{% url 'registrar_poliza' %}" 
+                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 flex items-center gap-2 flex-shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                <span class="hidden lg:inline">Registrar Nueva Póliza</span>
+                <span class="lg:hidden">Registrar</span>
+            </a>
+        </div>
     </div>
+</div>
 
-     <!-- Contenedor del Formulario de búsqueda centrado -->
-     <div class="flex justify-center mb-4">
-        <form method="get" action="" class="w-full max-w-md">
-            <div class="flex items-center">
-                <input type="text" name="query" placeholder="Buscar póliza" value="{{ request.GET.query }}"
-                    class="border border-gray-300 p-2 rounded-l-lg w-full">
-                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r-lg hover:bg-blue-600">
-                    Buscar
-                </button>
-            </div>
-        </form>
+<!-- Contenedor principal con espaciado -->
+<div class="px-6 pt-6">
+    <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Número de Póliza
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Descripción
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Fecha
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Empresa
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Acciones
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for poliza in polizas %}
+                <tr class="hover:bg-gray-50 transition-colors duration-150">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {{ poliza.numero_poliza }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">
+                        {{ poliza.descripcion|truncatechars:50 }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ poliza.fecha|date:"d/m/Y" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ poliza.empresa.razon_social }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="{% url 'editar_poliza' pk=poliza.id %}" 
+                            class="text-blue-600 hover:text-blue-900 font-medium mr-3">
+                            Editar
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center">
+                        <div class="flex flex-col items-center justify-center">
+                            <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                            <p class="text-gray-500 text-lg">No hay pólizas registradas</p>
+                            {% if request.GET.query %}
+                                <p class="text-gray-400 text-sm mt-2">No se encontraron resultados para "{{ request.GET.query }}"</p>
+                                <a href="{% url 'poliza_list' %}" 
+                                    class="mt-4 text-blue-600 hover:text-blue-700 font-medium">
+                                    Limpiar búsqueda
+                                </a>
+                            {% else %}
+                                <p class="text-gray-400 text-sm mt-2">Comienza registrando una nueva póliza</p>
+                                <a href="{% url 'registrar_poliza' %}" 
+                                    class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+                                    Registrar primera póliza
+                                </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-
-    <!-- Tabla de pólizas -->
-    <table class="min-w-full mt-6 bg-white border border-gray-200">
-        <thead class="bg-gray-50">
-            <tr>
-                <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Número de Póliza</th>
-                <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
-                <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Empresa</th>
-                <th class="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for poliza in polizas %}
-            <tr class="border-b">
-                <td class="px-6 py-2">{{ poliza.numero_poliza }}</td>
-                <td class="px-6 py-2">{{ poliza.descripcion }}</td>
-                <td class="px-6 py-2">{{ poliza.fecha }}</td>
-                <td class="px-6 py-2">{{ poliza.empresa.razon_social }}</td>
-                <td class="px-6 py-2">
-                    <a href="{% url 'editar_poliza' pk=poliza.id %}" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600">Editar</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" class="px-4 py-2 text-center">No hay pólizas registradas.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
+    
     <!-- Paginación -->
-    <div class="mt-4">
-        {% if is_paginated %}
-            <div class="flex justify-between">
-                {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}" class="bg-gray-500 text-white py-2 px-4 rounded-lg">Anterior</a>
-                {% else %}
-                    <span class="py-2 px-4 text-gray-500">Anterior</span>
-                {% endif %}
-
-                <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-
-                {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}" class="bg-gray-500 text-white py-2 px-4 rounded-lg">Siguiente</a>
-                {% else %}
-                    <span class="py-2 px-4 text-gray-500">Siguiente</span>
-                {% endif %}
+    {% if is_paginated %}
+    <div class="mt-6 flex items-center justify-between">
+        <div class="flex-1 flex justify-between sm:hidden">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&query={{ request.GET.query }}" 
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Anterior
+                </a>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&query={{ request.GET.query }}" 
+                   class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Siguiente
+                </a>
+            {% endif %}
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700">
+                    Mostrando
+                    <span class="font-medium">{{ page_obj.start_index }}</span>
+                    a
+                    <span class="font-medium">{{ page_obj.end_index }}</span>
+                    de
+                    <span class="font-medium">{{ page_obj.paginator.count }}</span>
+                    resultados
+                </p>
             </div>
-        {% endif %}
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}&query={{ request.GET.query }}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <span class="sr-only">Anterior</span>
+                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </a>
+                    {% endif %}
+                    
+                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    </span>
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}&query={{ request.GET.query }}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <span class="sr-only">Siguiente</span>
+                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
     </div>
+    {% endif %}
+    
+    <!-- Información adicional opcional -->
+    {% if polizas and not is_paginated %}
+    <div class="mt-6 text-sm text-gray-500">
+        Mostrando {{ polizas|length }} póliza{{ polizas|length|pluralize }}
+    </div>
+    {% endif %}
 </div>
 {% endblock content %}

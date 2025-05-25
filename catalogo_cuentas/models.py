@@ -2,6 +2,7 @@
 
 from django.db import models
 from empresa.models import Empresa
+from django.core.exceptions import ValidationError
 
 class CatalogoCuentas(models.Model):
     TIPO_CATALOGO_CHOICES = [
@@ -31,3 +32,7 @@ class Cuenta(models.Model):
 
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
+    
+    def clean(self):
+        if not CatalogoCuentas.objects.filter(id=self.catalogo_id).exists():
+            raise ValidationError("El catálogo seleccionado no existe.")

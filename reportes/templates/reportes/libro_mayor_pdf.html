@@ -1,59 +1,348 @@
-<!-- comite_pro/reportes/templates/reportes/libro_mayor_pdf.html -->
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libro Mayor - PDF</title>
+    <style>
+        /* Reset y configuración base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-{% block title %}Reporte de Libro Mayor (PDF){% endblock %}
+        /* Configuración de página */
+        @page {
+            size: A4 landscape; /* Orientación horizontal para más columnas */
+            margin: 1.2cm;
+            @top-center {
+                content: "Libro Mayor - Página " counter(page);
+                font-family: 'Arial', sans-serif;
+                font-size: 9pt;
+                color: #666;
+            }
+        }
 
-{% block content %}
-<div class="max-w-6xl mx-auto p-6">
-    <!-- Encabezado -->
-    <div class="text-center mb-8">
-        <h2 class="text-xl font-bold">COMITÉ PRO-OPERACIÓN ADMINISTRACIÓN Y MANTENIMIENTO DE AGUA POTABLE</h2>
-        <h4 class="text-lg font-semibold mt-2">Libro Mayor del {{ fecha_inicio }} al {{ fecha_fin }}</h4>
+        /* Tipografía principal */
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 10pt;
+            line-height: 1.3;
+            color: #000;
+        }
+
+        /* Encabezados */
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+
+        .header h1 {
+            font-family: 'Arial', sans-serif;
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            color: #1a1a1a;
+        }
+
+        .header h2 {
+            font-family: 'Times New Roman', serif;
+            font-size: 12pt;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .fecha-reporte {
+            font-family: 'Arial', sans-serif;
+            font-size: 11pt;
+            font-style: italic;
+            color: #555;
+        }
+
+        /* Tabla principal */
+        .tabla-mayor {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-family: 'Arial', sans-serif;
+            font-size: 9pt;
+        }
+
+        .tabla-mayor th {
+            background-color: #2c3e50;
+            color: white;
+            border: 1.5px solid #34495e;
+            padding: 8px 6px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 10pt;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .tabla-mayor td {
+            border: 1px solid #666;
+            padding: 4px 6px;
+            vertical-align: top;
+        }
+
+        /* Columnas específicas */
+        .col-cuenta {
+            width: 15%;
+            text-align: center;
+        }
+
+        .col-descripcion {
+            width: 35%;
+            text-align: left;
+        }
+
+        .col-saldo-ant {
+            width: 12%;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        .col-debe {
+            width: 12%;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        .col-haber {
+            width: 12%;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        .col-saldo {
+            width: 14%;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        /* Tipos de filas */
+        .fila-encabezado-cuenta {
+            background-color: #ecf0f1;
+            font-weight: bold;
+            border-top: 2px solid #2c3e50;
+        }
+
+        .fila-encabezado-cuenta td {
+            font-family: 'Arial', sans-serif;
+            font-size: 10pt;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .fila-movimiento {
+            background-color: #fff;
+        }
+
+        .fila-movimiento:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .fila-total-cuenta {
+            background-color: #d5dbdb;
+            font-weight: bold;
+            border-bottom: 2px solid #2c3e50;
+        }
+
+        .fila-total-cuenta td {
+            font-family: 'Arial', sans-serif;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        /* Valores monetarios */
+        .valor-monetario {
+            font-family: 'Courier New', monospace;
+            font-size: 9pt;
+        }
+
+        .valor-total {
+            font-family: 'Courier New', monospace;
+            font-size: 10pt;
+            font-weight: bold;
+        }
+
+        .valor-negativo {
+            color: #e74c3c;
+        }
+
+        .valor-positivo {
+            color: #27ae60;
+        }
+
+        /* Separadores entre cuentas */
+        .separador-cuenta {
+            border-top: 3px solid #2c3e50 !important;
+        }
+
+        /* Evitar saltos de página dentro de cuentas */
+        .cuenta-grupo {
+            page-break-inside: avoid;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 8pt;
+            color: #7f8c8d;
+            border-top: 1px solid #bdc3c7;
+            padding-top: 8px;
+        }
+
+        /* Estilos para celdas vacías */
+        .celda-vacia {
+            background-color: #f8f9fa;
+        }
+
+        /* Información de cuenta */
+        .info-cuenta {
+            font-size: 11pt;
+            font-weight: bold;
+        }
+
+        .codigo-cuenta {
+            color: #2c3e50;
+            font-family: 'Courier New', monospace;
+        }
+
+        .nombre-cuenta {
+            color: #34495e;
+            font-family: 'Arial', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <!-- Encabezado del reporte -->
+    <div class="header">
+        <h1>COMITÉ PRO-OPERACIÓN ADMINISTRACIÓN Y MANTENIMIENTO DE AGUA POTABLE</h1>
+        <h2>LIBRO MAYOR</h2>
+        <div class="fecha-reporte">
+            {% if fecha_inicio or fecha_fin %}
+                Período: 
+                {% if fecha_inicio %}{{ fecha_inicio|date:"d/m/Y" }}{% else %}Inicio{% endif %} 
+                al 
+                {% if fecha_fin %}{{ fecha_fin|date:"d/m/Y" }}{% else %}Actual{% endif %}
+            {% else %}
+                Todos los registros
+            {% endif %}
+            <br>
+            {% if cuenta_seleccionada %}
+                Cuenta: {{ cuenta_seleccionada }}
+                {% for cuenta in reporte_data %}
+                    {% if cuenta.codigo_cuenta == cuenta_seleccionada %}
+                        - {{ cuenta.nombre_cuenta }}
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                Todas las Cuentas
+            {% endif %}
+        </div>
     </div>
 
-    <!-- Tabla de Movimientos -->
-    <table class="min-w-full border border-gray-300">
+    <!-- Tabla principal -->
+    <table class="tabla-mayor">
         <thead>
-            <tr class="bg-gray-200">
-                <th class="border px-4 py-2">Cuenta</th>
-                <th class="border px-4 py-2">Descripción</th>
-                <th class="border px-4 py-2">Saldo Ant.</th>
-                <th class="border px-4 py-2">Debe</th>
-                <th class="border px-4 py-2">Haber</th>
-                <th class="border px-4 py-2">Saldo</th>
+            <tr>
+                <th class="col-cuenta">Cuenta / Fecha</th>
+                <th class="col-descripcion">Descripción</th>
+                <th class="col-saldo-ant">Saldo Anterior</th>
+                <th class="col-debe">Debe</th>
+                <th class="col-haber">Haber</th>
+                <th class="col-saldo">Saldo</th>
             </tr>
         </thead>
         <tbody>
             {% for cuenta in reporte_data %}
-            <!-- Mostrar la información de la cuenta en la primera fila, incluyendo el saldo anterior -->
-            <tr class="bg-gray-100">
-                <td class="border px-4 py-2 font-bold">{{ cuenta.codigo_cuenta }}</td>
-                <td class="border px-4 py-2 font-bold">{{ cuenta.nombre_cuenta }}</td>
-                <td class="border px-4 py-2 text-right font-bold">Q {{ cuenta.saldo_anterior|floatformat:2 }}</td>
-                <td class="border px-4 py-2"></td>
-                <td class="border px-4 py-2"></td>
-                <td class="border px-4 py-2"></td>
-            </tr>
-            <!-- Mostrar los movimientos de la cuenta -->
-            {% for movimiento in cuenta.movimientos %}
-            <tr class="border-t">
-                <td class="border px-4 py-2">{{ movimiento.fecha|date:"d/m/Y" }}</td>
-                <td class="border px-4 py-2">{{ movimiento.descripcion }}</td>
-                <td class="border px-4 py-2 text-right"></td>
-                <td class="border px-4 py-2 text-right">Q {{ movimiento.debe|floatformat:2 }}</td>
-                <td class="border px-4 py-2 text-right">Q {{ movimiento.haber|floatformat:2 }}</td>
-                <td class="border px-4 py-2 text-right">Q {{ movimiento.saldo|floatformat:2 }}</td>
-            </tr>
-            {% endfor %}
-            <!-- Mostrar el total de la cuenta -->
-            <tr class="border-t bg-gray-100">
-                <td class="border px-4 py-2 font-bold" colspan="3">Total de {{ cuenta.nombre_cuenta }}</td>
-                <td class="border px-4 py-2 text-right font-bold">Q {{ cuenta.total_debe|floatformat:2 }}</td>
-                <td class="border px-4 py-2 text-right font-bold">Q {{ cuenta.total_haber|floatformat:2 }}</td>
-                <td class="border px-4 py-2 text-right font-bold">Q {{ cuenta.saldo_final|floatformat:2 }}</td>
-            </tr>
+                <!-- Encabezado de cuenta -->
+                <tr class="fila-encabezado-cuenta cuenta-grupo {% if not forloop.first %}separador-cuenta{% endif %}">
+                    <td class="col-cuenta info-cuenta">
+                        <span class="codigo-cuenta">{{ cuenta.codigo_cuenta }}</span>
+                    </td>
+                    <td class="col-descripcion info-cuenta">
+                        <span class="nombre-cuenta">{{ cuenta.nombre_cuenta }}</span>
+                    </td>
+                    <td class="col-saldo-ant valor-total">
+                        {{ cuenta.saldo_anterior|stringformat:".2f" }}
+                    </td>
+                    <td class="col-debe celda-vacia"></td>
+                    <td class="col-haber celda-vacia"></td>
+                    <td class="col-saldo celda-vacia"></td>
+                </tr>
+                
+                <!-- Movimientos de la cuenta -->
+                {% for movimiento in cuenta.movimientos %}
+                <tr class="fila-movimiento">
+                    <td class="col-cuenta">
+                        {{ movimiento.fecha|date:"d/m/Y" }}
+                    </td>
+                    <td class="col-descripcion">
+                        {{ movimiento.descripcion|truncatechars:45 }}
+                    </td>
+                    {% comment %} <td class="col-saldo-ant celda-vacia"></td> {% endcomment %}
+                    <td class="col-debe valor-monetario">
+                        Q{{ movimiento.saldo_anterior|stringformat:".2f" }}
+                    </td>                    
+                    <td class="col-debe valor-monetario">
+                        {% if movimiento.debe and movimiento.debe != 0 %}
+                            Q{{ movimiento.debe|stringformat:".2f" }}
+                        {% endif %}
+                    </td>
+                    <td class="col-haber valor-monetario">
+                        {% if movimiento.haber and movimiento.haber != 0 %}
+                            Q{{ movimiento.haber|stringformat:".2f" }}
+                        {% endif %}
+                    </td>
+                    <td class="col-saldo valor-monetario {% if movimiento.saldo < 0 %}valor-negativo{% else %}valor-positivo{% endif %}">
+                        Q{{ movimiento.saldo|stringformat:".2f" }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr class="fila-movimiento">
+                    <td class="col-cuenta" style="text-align: center; font-style: italic;" colspan="6">
+                        Sin movimientos en el período seleccionado
+                    </td>
+                </tr>
+                {% endfor %}
+                
+                <!-- Totales de la cuenta -->
+                <tr class="fila-total-cuenta">
+                    <td class="col-cuenta"><strong>TOTALES</strong></td>
+                    <td class="col-descripcion"><strong>{{ cuenta.nombre_cuenta }}</strong></td>
+                    <td class="col-saldo-ant"></td>
+                    <td class="col-debe valor-total">
+                        Q{{ cuenta.total_debe|stringformat:".2f" }}
+                    </td>
+                    <td class="col-haber valor-total">
+                        Q{{ cuenta.total_haber|stringformat:".2f" }}
+                    </td>
+                    <td class="col-saldo valor-total {% if cuenta.saldo_final < 0 %}valor-negativo{% else %}valor-positivo{% endif %}">
+                        Q{{ cuenta.saldo_final|stringformat:".2f" }}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 20px; font-style: italic; font-size: 12pt;">
+                        No se encontraron cuentas para el período seleccionado
+                    </td>
+                </tr>
             {% endfor %}
         </tbody>
     </table>
-</div>
-{% endblock %}
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Reporte generado el {{ "now"|date:"d/m/Y H:i" }}</p>
+        <p>Sistema Contable - Comité Pro-Operación</p>
+    </div>
+</body>
+</html>
