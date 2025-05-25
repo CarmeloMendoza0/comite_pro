@@ -18,5 +18,5 @@ urlpatterns = [
     path('cuentas/editar/<int:pk>/', CuentaUpdateView.as_view(), name='cuenta_update'),
 
     # URL para Plan de Cuentas
-     path('plan-cuentas/', PlanCuentasView.as_view(), name='plan_cuentas'),
+    path('plan-cuentas/', PlanCuentasView.as_view(), name='plan_cuentas'),
 ]

@@ -16,3 +16,5 @@ urlpatterns = [
     path('libro-mayor-pdf/', ExportarLibroMayorPDFView.as_view(), name='exportar_libro_mayor_pdf'),
     path('libro-mayor-excel/', ExportarLibroMayorExcelView.as_view(), name='exportar_libro_mayor_excel'),
 ]
+
+

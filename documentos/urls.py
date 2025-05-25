@@ -1,3 +1,4 @@
+#comite_pro/documentos/urls.py
 from django.urls import path
 from .views import (
     TipoDocumentoListView, TipoDocumentoCreateView, TipoDocumentoUpdateView,
@@ -15,3 +16,4 @@ urlpatterns = [
     path('comprobantes/crear/', RegistroDocComprobanteView.as_view(), name='doccomprobante_create'),
     path('comprobantes/editar/<int:pk>/', EditarDocComprobanteView.as_view(), name='doccomprobante_update'),
 ]
+
