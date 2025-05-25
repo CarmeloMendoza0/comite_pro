@@ -30,13 +30,14 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-ee39cq+k96v1j!$+bvg1fzx!%9
 # SECURITY WARNING: don't run with debug turned on in production!
 # Detectar entorno
 IS_PRODUCTION = os.getenv('RAILWAY_ENVIRONMENT') is not None
-DEBUG = not IS_PRODUCTION
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true' if IS_PRODUCTION else True
 
 # Configuración de hosts permitidos
 ALLOWED_HOSTS = []
 if IS_PRODUCTION:
     ALLOWED_HOSTS = [
         '.railway.app',
+        'comitepro-production.up.railway.app',
         os.getenv('RAILWAY_STATIC_URL', '').replace('https://', ''),
     ]
 else:
@@ -45,14 +46,14 @@ else:
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-if IS_PRODUCTION:
-    # En Railway, usa la URL de la base de datos
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL'),
-            conn_max_age=600
-        )
-    }
+# Database - SIEMPRE usar Railway
+DATABASES = {
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL'),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+}
 
 # Application definition
 
@@ -160,11 +161,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Security settings for production
 if IS_PRODUCTION:
-    SECURE_SSL_REDIRECT = True
+    SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-
+# CSRF settings
+CSRF_TRUSTED_ORIGINS = [
+    'https://comitepro-production.up.railway.app',
+    'https://*.railway.app',
+]

@@ -1,1 +1,1 @@
-web: python manage.py collectstatic && gunicorn comite_pro.wsgi
+web: python manage.py migrate && python manage.py collectstatic --noinput && gunicorn comite_pro.wsgi
