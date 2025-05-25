@@ -12,6 +12,10 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 import os
 from pathlib import Path
+import dj_database_url
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,13 +25,34 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ee39cq+k96v1j!$+bvg1fzx!%97vttz*avyt3y2@wd3+d=xew&'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-ee39cq+k96v1j!$+bvg1fzx!%97vttz*avyt3y2@wd3+d=xew&')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Detectar entorno
+IS_PRODUCTION = os.getenv('RAILWAY_ENVIRONMENT') is not None
+DEBUG = not IS_PRODUCTION
 
+# Configuración de hosts permitidos
 ALLOWED_HOSTS = []
+if IS_PRODUCTION:
+    ALLOWED_HOSTS = [
+        '.railway.app',
+        os.getenv('RAILWAY_STATIC_URL', '').replace('https://', ''),
+    ]
+else:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
+# Database
+# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+
+if IS_PRODUCTION:
+    # En Railway, usa la URL de la base de datos
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv('DATABASE_URL'),
+            conn_max_age=600
+        )
+    }
 
 # Application definition
 
@@ -38,7 +63,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'whitenoise.runserver_nostatic'
+    'whitenoise.runserver_nostatic',
     'crispy_forms',
     'crispy_tailwind',
     'django_extensions',
@@ -83,22 +108,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'comite_pro.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'comite_pro_db',
-        'USER': 'postgres',
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'cmc10025'),
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
-
-
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -122,41 +131,40 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
 LANGUAGE_CODE = 'es-gt'
-
-TIME_ZONE = 'UTC'
-
+TIME_ZONE = 'America/Guatemala'
 USE_I18N = True
-
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
-
-# Directorio donde están los archivos estáticos adicionales del proyecto
-
-""" STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
-] 
- """
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
+# WhiteNoise configuration
 STATICFILES_STORAGES = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+# Crispy Forms
 CRISPY_ALLOWED_TEMPLATE_PACKS = "tailwind"
-
 CRISPY_TEMPLATE_PACK = "tailwind"
 
+# Auth redirects
 LOGOUT_REDIRECT_URL = '/usuarios/login/'
-
 LOGIN_REDIRECT_URL = '/empresa/dashboard/'
-
 LOGIN_URL = '/usuarios/login/'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Security settings for production
+if IS_PRODUCTION:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
 
