@@ -55,6 +55,12 @@ DATABASES = {
     )
 }
 
+# Fix para dbshell con Railway
+if not IS_PRODUCTION:
+    db_from_env = dj_database_url.parse(os.getenv('DATABASE_URL'))
+    if db_from_env:
+        DATABASES['default'].update(db_from_env)
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -161,7 +167,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Security settings for production
 if IS_PRODUCTION:
-    SECURE_SSL_REDIRECT = False
+    SECURE_SSL_REDIRECT = False # Railway maneja HTTPS, no forzar redirección
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 31536000
