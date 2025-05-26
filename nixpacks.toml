@@ -1,11 +1,11 @@
 [phases.setup]
-nixPkgs = [
-    "python311Full", 
+nixPkgs = [ 
     "cairo",
     "pango",
     "gdk-pixbuf",
     "gobject-introspection",
-    "libffi"
+    "libffi",
+    { name = "python"; value = "python311.withPackages (ps: with ps; [ pip setuptools wheel ])"; }
 ]
 
 [phases.install]
