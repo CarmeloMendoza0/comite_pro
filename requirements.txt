@@ -48,3 +48,4 @@ weasyprint==63.0
 webencodings==0.5.1
 whitenoise==6.9.0
 zopfli==0.2.3.post1
+
