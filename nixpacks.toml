@@ -5,10 +5,7 @@ nixPkgs = [
     "gdk-pixbuf",
     "gobject-introspection",
     "libffi",
-    {
-    name = "python";
-    value = "python311.withPackages (ps: with ps; [ pip setuptools wheel ])";
-    }
+    { name = "python", value = "python311.withPackages (ps: with ps; [ pip setuptools wheel ])" }
 ]
 
 [phases.install]
