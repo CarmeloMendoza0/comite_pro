@@ -1,7 +1,6 @@
 [phases.setup]
 nixPkgs = [
-    "python311",
-    "pipenv",   
+    "python311Full", 
     "cairo",
     "pango",
     "gdk-pixbuf",
