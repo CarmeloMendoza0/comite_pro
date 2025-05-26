@@ -160,7 +160,7 @@ CRISPY_TEMPLATE_PACK = "tailwind"
 
 # Auth redirects
 LOGOUT_REDIRECT_URL = '/usuarios/login/'
-LOGIN_REDIRECT_URL = '/empresa/dashboard/'
+LOGIN_REDIRECT_URL = '/empresa/'
 LOGIN_URL = '/usuarios/login/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

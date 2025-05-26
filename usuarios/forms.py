@@ -20,8 +20,12 @@ class CustomUserCreationForm(UserCreationForm):
             'password2': forms.PasswordInput(attrs={'class': 'form-control'}),
         }
 
+class CustomAuthenticationForm(AuthenticationForm):
+    username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+
+"""Sobrescribir save para asignar el grupo/rol
     def save(self, commit=True):
-        """Sobrescribir save para asignar el grupo/rol"""
         user = super().save(commit=False)
         
         if commit:
@@ -32,7 +36,4 @@ class CustomUserCreationForm(UserCreationForm):
                 user.groups.add(rol)
         
         return user
-
-class CustomAuthenticationForm(AuthenticationForm):
-    username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
-    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+"""
