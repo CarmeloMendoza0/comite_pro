@@ -1,15 +1,18 @@
 [phases.setup]
-nixPkgs = [ 
+nixPkgs = [
+    "python311",
     "cairo",
     "pango",
     "gdk-pixbuf",
     "gobject-introspection",
     "libffi",
-    { name = "python", value = "python311.withPackages (ps: with ps; [ pip setuptools wheel ])" }
+    "gcc",
+    "pkg-config"
 ]
 
 [phases.install]
 cmds = [
+    "pip install --upgrade pip",
     "pip install -r requirements.txt"
 ]
 
