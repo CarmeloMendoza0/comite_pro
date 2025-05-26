@@ -1,18 +1,18 @@
 [phases.setup]
 nixPkgs = [ 
-    "python311Full",
     "cairo",
     "pango",
     "gdk-pixbuf",
     "gobject-introspection",
-    "libffi"
+    "libffi",
+    {
+    name = "python";
+    value = "python311.withPackages (ps: with ps; [ pip setuptools wheel ])";
+    }
 ]
 
 [phases.install]
 cmds = [
-    "curl -O https://bootstrap.pypa.io/get-pip.py",
-    "python3.11 get-pip.py",
-    "python3.11 -m pip install --upgrade setuptools",
-    "python3.11 -m pip install -r requirements.txt"
+    "pip install -r requirements.txt"
 ]
 

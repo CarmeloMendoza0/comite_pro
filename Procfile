@@ -1,1 +1,1 @@
-web: python manage.py check || true && python manage.py collectstatic --noinput && gunicorn comite_pro.wsgi
+web: python manage.py check && python manage.py migrate && python manage.py collectstatic --noinput && gunicorn comite_pro.wsgi:application --bind 0.0.0.0:$PORT
