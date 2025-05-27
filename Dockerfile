@@ -3,17 +3,22 @@ FROM python:3.11-slim
 
 # Instalar dependencias del sistema para WeasyPrint
 RUN apt-get update && apt-get install -y \
+    # Dependencias básicas de compilación
+    build-essential \
+    # Dependencias de WeasyPrint
     libcairo2 \
-    libcairo2-dev \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
-    libgdk-pixbuf2.0-dev \
+    libgdk-pixbuf-2.0-0 \
     libffi-dev \
-    libgobject-2.0-0 \
+    libglib2.0-0 \
+    libglib2.0-dev \
     libgirepository-1.0-1 \
     gir1.2-pango-1.0 \
+    gir1.2-gdkpixbuf-2.0 \
     shared-mime-info \
+    # Herramientas adicionales
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Establecer directorio de trabajo
@@ -29,10 +34,10 @@ COPY . .
 # Crear directorio para archivos estáticos
 RUN mkdir -p staticfiles media
 
-# Exponer el puerto
+# Exponer el puerto (Railway lo sobrescribe con $PORT)
 EXPOSE 8000
 
 # Comando para ejecutar la aplicación
 CMD python manage.py migrate && \
     python manage.py collectstatic --noinput && \
-    gunicorn comite_pro.wsgi:application --bind 0.0.0.0:$PORT
+    gunicorn comite_pro.wsgi:application --bind 0.0.0.0:${PORT:-8000}
