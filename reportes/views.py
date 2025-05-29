@@ -22,7 +22,18 @@ class LibroDiarioView(LoginRequiredMixin, View):
         fecha_inicio = request.GET.get('fecha_inicio')
         fecha_fin = request.GET.get('fecha_fin')
 
-        transacciones = Transaccion.objects.filter(empresa=empresa).order_by('fecha')
+        #transacciones = Transaccion.objects.filter(empresa=empresa).order_by('fecha')
+        transacciones = Transaccion.objects.filter(
+            empresa=empresa
+        ).exclude(
+            comprobante__estado='Anulado'
+        ).exclude(
+            comprobante__activo=False  
+        ).exclude(
+            banco__activo=False
+        ).exclude(
+            activo=False
+        ).order_by('fecha')
 
         if fecha_inicio:
             transacciones = transacciones.filter(fecha__gte=parse_date(fecha_inicio))
@@ -85,13 +96,23 @@ class LibroDiarioView(LoginRequiredMixin, View):
 
 class ExportarLibroDiarioPDFView(LoginRequiredMixin, View):
     def get(self, request):
-        # Utilizar la misma lógica de filtro que la vista anterior
         empresa = request.user.empresa.first()
         fecha_inicio = request.GET.get('fecha_inicio')
         fecha_fin = request.GET.get('fecha_fin')
 
         # Inicializar el queryset vacío
-        transacciones = Transaccion.objects.filter(empresa=empresa).order_by('fecha') if empresa else Transaccion.objects.none()
+        #transacciones = Transaccion.objects.filter(empresa=empresa).order_by('fecha') if empresa else Transaccion.objects.none()
+        transacciones = Transaccion.objects.filter(
+            empresa=empresa
+        ).exclude(
+            comprobante__estado='Anulado'
+        ).exclude(
+            comprobante__activo=False
+        ).exclude(
+            banco__activo=False
+        ).exclude(
+            activo=False
+        ).order_by('fecha') if empresa else Transaccion.objects.none()
 
         # Verificar si las fechas son válidas antes de filtrar
         if fecha_inicio:
@@ -198,6 +219,14 @@ class LibroMayorView(LoginRequiredMixin, View):
                 movimientos_antes = Movimiento.objects.filter(
                     cuenta=cuenta,
                     transaccion__fecha__lt=fecha_inicio_parsed
+                ).exclude(
+                    transaccion__comprobante__estado='Anulado'
+                ).exclude(
+                    transaccion__comprobante__activo=False
+                ).exclude(
+                    transaccion__banco__activo=False
+                ).exclude(
+                    transaccion__activo=False
                 ).order_by('transaccion__fecha')
 
                 # Calcular el saldo antes de la fecha de inicio
@@ -210,7 +239,19 @@ class LibroMayorView(LoginRequiredMixin, View):
                         saldo_anterior += (movimiento.haber or 0)
 
             # Obtener los movimientos a partir de la fecha de inicio hasta la fecha fin
-            movimientos = Movimiento.objects.filter(cuenta=cuenta).order_by('transaccion__fecha')
+            #movimientos = Movimiento.objects.filter(cuenta=cuenta).order_by('transaccion__fecha')
+            movimientos = Movimiento.objects.filter(
+                cuenta=cuenta
+            ).exclude(
+                transaccion__comprobante__estado='Anulado'
+            ).exclude(
+                transaccion__comprobante__activo=False
+            ).exclude(
+                transaccion__banco__activo=False
+            ).exclude(
+                transaccion__activo=False
+            ).order_by('transaccion__fecha')
+
             if fecha_inicio_parsed:
                 movimientos = movimientos.filter(transaccion__fecha__gte=fecha_inicio_parsed)
             if fecha_fin_parsed:
@@ -359,6 +400,14 @@ class ExportarLibroMayorPDFView(LoginRequiredMixin, View):
                 movimientos_antes = Movimiento.objects.filter(
                     cuenta=cuenta,
                     transaccion__fecha__lt=fecha_inicio_parsed
+                ).exclude(
+                    transaccion__comprobante__estado='Anulado'
+                ).exclude(
+                    transaccion__comprobante__activo=False
+                ).exclude(
+                    transaccion__banco__activo=False
+                ).exclude(
+                    transaccion__activo=False
                 ).order_by('transaccion__fecha')
 
                 # Calcular el saldo antes de la fecha de inicio
@@ -371,7 +420,19 @@ class ExportarLibroMayorPDFView(LoginRequiredMixin, View):
                         saldo_anterior += (movimiento.haber or 0)
 
             # Obtener los movimientos a partir de la fecha de inicio hasta la fecha fin
-            movimientos = Movimiento.objects.filter(cuenta=cuenta).order_by('transaccion__fecha')
+            #movimientos = Movimiento.objects.filter(cuenta=cuenta).order_by('transaccion__fecha')
+            movimientos = Movimiento.objects.filter(
+                cuenta=cuenta
+            ).exclude(
+                transaccion__comprobante__estado='Anulado'
+            ).exclude(
+                transaccion__comprobante__activo=False
+            ).exclude(
+                transaccion__banco__activo=False
+            ).exclude(
+                transaccion__activo=False
+            ).order_by('transaccion__fecha')
+
             if fecha_inicio_parsed:
                 movimientos = movimientos.filter(transaccion__fecha__gte=fecha_inicio_parsed)
             if fecha_fin_parsed:
@@ -501,7 +562,18 @@ class ExportarLibroDiarioExcelView(LoginRequiredMixin, View):
         fecha_fin = request.GET.get('fecha_fin')
 
         # Inicializar el queryset
-        transacciones = Transaccion.objects.filter(empresa=empresa).order_by('fecha') if empresa else Transaccion.objects.none()
+        #transacciones = Transaccion.objects.filter(empresa=empresa).order_by('fecha') if empresa else Transaccion.objects.none()
+        transacciones = Transaccion.objects.filter(
+            empresa=empresa
+        ).exclude(
+            comprobante__estado='Anulado'
+        ).exclude(
+            comprobante__activo=False  
+        ).exclude(
+            banco__activo=False
+        ).exclude(
+            activo=False
+        ).order_by('fecha') if empresa else Transaccion.objects.none()
 
         # Aplicar filtros de fecha
         fecha_inicio_parsed = None
@@ -844,6 +916,14 @@ class ExportarLibroMayorExcelView(LoginRequiredMixin, View):
                 movimientos_antes = Movimiento.objects.filter(
                     cuenta=cuenta,
                     transaccion__fecha__lt=fecha_inicio_parsed
+                ).exclude(
+                    transaccion__comprobante__estado='Anulado'
+                ).exclude(
+                    transaccion__comprobante__activo=False
+                ).exclude(
+                    transaccion__banco__activo=False
+                ).exclude(
+                    transaccion__activo=False
                 ).order_by('transaccion__fecha')
 
                 # Calcular el saldo antes de la fecha de inicio
@@ -856,7 +936,19 @@ class ExportarLibroMayorExcelView(LoginRequiredMixin, View):
                         saldo_anterior += float(movimiento.haber or 0)
 
             # Obtener los movimientos del período
-            movimientos = Movimiento.objects.filter(cuenta=cuenta).order_by('transaccion__fecha')
+            #movimientos = Movimiento.objects.filter(cuenta=cuenta).order_by('transaccion__fecha')
+            movimientos = Movimiento.objects.filter(
+                cuenta=cuenta
+            ).exclude(
+                transaccion__comprobante__estado='Anulado'
+            ).exclude(
+                transaccion__comprobante__activo=False
+            ).exclude(
+                transaccion__banco__activo=False
+            ).exclude(
+                transaccion__activo=False
+            ).order_by('transaccion__fecha')
+
             if fecha_inicio_parsed:
                 movimientos = movimientos.filter(transaccion__fecha__gte=fecha_inicio_parsed)
             if fecha_fin_parsed:

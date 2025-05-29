@@ -68,14 +68,32 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         transacciones_mes_actual = Transaccion.objects.filter(
             empresa=empresa_actual,
             fecha__gte=inicio_mes_actual,
-            fecha__lte=fin_mes_actual
+            fecha__lte=fin_mes_actual,
+            activo=True  # Solo transacciones activas
+        ).exclude(
+            # Excluir transacciones vinculadas a DocumentoBanco inactivos
+            banco__activo=False
+        ).exclude(
+            # Excluir transacciones vinculadas a DocComprobante inactivos o anulados
+            comprobante__activo=False
+        ).exclude(
+            comprobante__estado='Anulado'
         )
         
         # Obtener transacciones del mes anterior
         transacciones_mes_anterior = Transaccion.objects.filter(
             empresa=empresa_actual,
             fecha__gte=inicio_mes_anterior,
-            fecha__lte=fin_mes_anterior
+            fecha__lte=fin_mes_anterior,
+            activo=True  # Solo transacciones activas
+        ).exclude(
+            # Excluir transacciones vinculadas a DocumentoBanco inactivos
+            banco__activo=False
+        ).exclude(
+            # Excluir transacciones vinculadas a DocComprobante inactivos o anulados
+            comprobante__activo=False
+        ).exclude(
+            comprobante__estado='Anulado'
         )
         
         # Calcular totales del mes actual
@@ -136,7 +154,16 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         
         # Obtener las últimas transacciones
         ultimas_transacciones = Transaccion.objects.filter(
-            empresa=empresa_actual
+            empresa=empresa_actual,
+            activo=True  # Solo transacciones activas
+        ).exclude(
+            # Excluir transacciones vinculadas a DocumentoBanco inactivos
+            banco__activo=False
+        ).exclude(
+            # Excluir transacciones vinculadas a DocComprobante inactivos o anulados
+            comprobante__activo=False
+        ).exclude(
+            comprobante__estado='Anulado'
         ).order_by('-fecha')[:10]
         
         # Datos para el gráfico de ingresos vs gastos (últimos 6 meses)
@@ -171,14 +198,28 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 empresa=empresa_actual,
                 tipo_transaccion='Ingreso',
                 fecha__gte=fecha_inicio,
-                fecha__lte=fecha_fin
+                fecha__lte=fecha_fin,
+                activo=True  # Solo transacciones activas
+            ).exclude(
+                banco__activo=False
+            ).exclude(
+                comprobante__activo=False
+            ).exclude(
+                comprobante__estado='Anulado'
             ).aggregate(total=Sum('monto_total'))['total'] or 0
             
             gastos_mes = Transaccion.objects.filter(
                 empresa=empresa_actual,
                 tipo_transaccion='Egreso',
                 fecha__gte=fecha_inicio,
-                fecha__lte=fecha_fin
+                fecha__lte=fecha_fin,
+                activo=True  # Solo transacciones activas
+            ).exclude(
+                banco__activo=False
+            ).exclude(
+                comprobante__activo=False
+            ).exclude(
+                comprobante__estado='Anulado'
             ).aggregate(total=Sum('monto_total'))['total'] or 0
             
             # Convertir Decimal a float para serialización JSON
@@ -191,23 +232,30 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         categorias_gastos = []
         datos_categorias_gastos = []
         
-        # Ejemplo: obtener gastos por tipo de documento
+        # Obtener gastos por tipo de documento
         gastos_por_tipo = Transaccion.objects.filter(
             empresa=empresa_actual,
             tipo_transaccion='Egreso',
             fecha__gte=inicio_mes_actual,
             fecha__lte=fin_mes_actual,
-            tipo_documento__isnull=False
+            tipo_documento__isnull=False,
+            activo=True  # Solo transacciones activas
+        ).exclude(
+            banco__activo=False
+        ).exclude(
+            comprobante__activo=False
+        ).exclude(
+            comprobante__estado='Anulado'
         ).values('tipo_documento__nombre').annotate(total=Sum('monto_total'))
         
         for item in gastos_por_tipo:
             categorias_gastos.append(item['tipo_documento__nombre'])
             datos_categorias_gastos.append(float(item['total']))
         
-        # Si no hay datos, agregar una categoría por defecto
+        #Categoría por defecto
         if not categorias_gastos:
             categorias_gastos = ['Sin categorizar', 'Operativos', 'Administrativos', 'Financieros', 'Otros']
-            datos_categorias_gastos = [0, 30, 25, 15, 10]  # valores por defecto de ejemplo
+            datos_categorias_gastos = [0, 80, 25, 0, 0]  # valores por defecto de ejemplo
             
         # Actualizar el contexto con todos los datos calculados
         context.update({

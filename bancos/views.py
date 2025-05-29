@@ -14,13 +14,37 @@ from transacciones.models import Movimiento, Transaccion
 from .forms import DocumentoBancoForm, MovimientoFormSet  
 from transacciones.forms import TransaccionForm
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.conf import settings
+import json
+
+@login_required
+@csrf_exempt
+def verificar_credencial_admin(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            clave_ingresada = data.get('clave', '')
+            
+            # Verificar contra la clave configurada en settings
+            clave_correcta = getattr(settings, 'ADMIN_VERIFICATION_KEY', 'ADM1N_S3CUR3')
+            
+            return JsonResponse({
+                'valida': clave_ingresada == clave_correcta
+            })
+        except:
+            return JsonResponse({'valida': False})
+    
+    return JsonResponse({'valida': False})
 
 class RegistroDocumentoBancoView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         documento_form = DocumentoBancoForm()
         transaccion_form = TransaccionForm()
         movimiento_formset = MovimientoFormSet()
-        cuentas = Cuenta.objects.filter(nivel=3)  
+        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  
         
         return render(request, 'bancos/documentobanco_form.html', {
             'documento_form': documento_form,
@@ -35,7 +59,7 @@ class RegistroDocumentoBancoView(LoginRequiredMixin, View):
         documento_form = DocumentoBancoForm(request.POST)
         transaccion_form = TransaccionForm(request.POST)
         movimiento_formset = MovimientoFormSet(request.POST)
-        cuentas = Cuenta.objects.filter(nivel=3)
+        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')
 
         # Obtener el tipo de movimiento del formulario
         tipo_movimiento = request.POST.get('tipo_movimiento')
@@ -194,23 +218,25 @@ class DocumentoBancoListView(LoginRequiredMixin, generic.ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Lista de Documentos Bancarios'
-        return context
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Lista de Documentos Bancarios'
+        context['mostrar_inactivos'] = self.request.GET.get('mostrar_inactivos') == 'true'
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        #queryset = super().get_queryset()
+        if self.request.GET.get('mostrar_inactivos') == 'true':
+            queryset = DocumentoBanco.objects.all()
+        else:
+            queryset = DocumentoBanco.activos()
+
         query = self.request.GET.get('query')
         if query:
             queryset = queryset.filter(
                 Q(numero_documento__icontains=query) |
                 Q(tipo_documento__nombre__icontains=query) |
                 Q(empresa__razon_social__icontains=query)
-            )
-        return queryset
+            ).distinct()
+
+        return queryset.order_by('-fecha', 'numero_documento')
     
 class EditarDocumentoBancoView(LoginRequiredMixin, View):
     def get(self, request, pk, *args, **kwargs):
@@ -235,7 +261,7 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
         movimiento_formset = MovimientoFormSet(instance=transaccion)
 
         # Obtener lista de cuentas disponibles
-        cuentas = Cuenta.objects.filter(nivel=3)
+        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')
 
         # Calcular totales para mostrarlos inicialmente
         movimientos = Movimiento.objects.filter(transaccion=transaccion)
@@ -267,7 +293,7 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
         transaccion_form = TransaccionForm(request.POST, instance=transaccion)
         movimiento_formset = MovimientoFormSet(request.POST, instance=transaccion)
 
-        cuentas = Cuenta.objects.filter(nivel=3)
+        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')
 
         # Obtener el tipo de movimiento del formulario
         tipo_movimiento = request.POST.get('tipo_movimiento')   
@@ -420,3 +446,17 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
             'is_edit': True,
             'titulo': 'Editar Documento Bancario',
         })    
+    
+
+class EliminarDocumentoBancoView(LoginRequiredMixin, View):
+    def post(self, request, pk, *args, **kwargs):
+        documento = get_object_or_404(DocumentoBanco, pk=pk)
+        
+        if not documento.activo:
+            messages.warning(request, 'El documento bancario ya está desactivado.')
+            return redirect('documentobanco_list')
+        
+        documento.desactivar()
+        
+        messages.success(request, f'El documento bancario {documento.numero_documento} ha sido desactivado correctamente.')
+        return redirect('documentobanco_list')    

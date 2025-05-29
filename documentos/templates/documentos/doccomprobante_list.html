@@ -42,6 +42,24 @@
     </div>
 </div>
 
+<div class="px-6 py-2 bg-gray-50 border-b border-gray-200">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <label class="flex items-center">
+                <input type="checkbox" id="toggleInactivos" 
+                    {% if mostrar_inactivos %}checked{% endif %}
+                    class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                <span class="ml-2 text-sm text-gray-600">Mostrar documentos inactivos</span>
+            </label>
+        </div>
+        {% if not mostrar_inactivos %}
+            <p class="text-sm text-gray-500">Mostrando solo documentos activos</p>
+        {% else %}
+            <p class="text-sm text-gray-500">Mostrando todos los documentos</p>
+        {% endif %}
+    </div>
+</div>
+
 <!-- Contenedor principal con espaciado -->
 <div class="px-6 pt-6">
     <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
@@ -90,25 +108,53 @@
                         Q{{ documento.monto_total|stringformat:".2f"}}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {% if documento.estado == 'activo' %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                {{ documento.estado }}
-                            </span>
-                        {% elif documento.estado == 'anulado' %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                {{ documento.estado }}
-                            </span>
+                        {% if documento.activo %}
+                            {% if documento.estado == 'Emitido' %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                    {{ documento.estado }}
+                                </span>
+                            {% elif documento.estado == 'Pagado' %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    {{ documento.estado }}
+                                </span>
+                            {% elif documento.estado == 'Anulado' %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                    {{ documento.estado }}
+                                </span>
+                            {% else %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                    {{ documento.estado }}
+                                </span>
+                            {% endif %}
                         {% else %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                                {{ documento.estado }}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-600">
+                                INACTIVO
                             </span>
                         {% endif %}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <a href="{% url 'doccomprobante_update' documento.pk %}" 
-                            class="text-blue-600 hover:text-blue-900 font-medium">
-                            Editar
-                        </a>
+                        <div class="flex items-center justify-end space-x-2">
+                            {% if documento.activo %}
+                                <!-- Botón Editar -->
+                                <button type="button" 
+                                    onclick="solicitarCredencialAdmin('editar', {{ documento.pk }}, '{{ documento.numero_documento }}')" 
+                                    data-url-editar="{% url 'doccomprobante_update' documento.pk %}"
+                                    data-documento-id="{{ documento.pk }}"
+                                    class="text-blue-600 hover:text-blue-900 font-medium cursor-pointer btn-editar">
+                                    Editar
+                                </button>
+                                <!-- Botón Eliminar -->
+                                <button type="button" 
+                                    onclick="solicitarCredencialAdmin('eliminar', {{ documento.pk }}, '{{ documento.numero_documento }}')" 
+                                    data-url-eliminar="{% url 'doccomprobante_delete' documento.pk %}"
+                                    data-documento-id="{{ documento.pk }}"
+                                    class="text-red-600 hover:text-red-900 font-medium cursor-pointer btn-eliminar">
+                                    Eliminar
+                                </button>
+                            {% else %}
+                                <span class="text-gray-400 text-sm">Sin acciones</span>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% empty %}
@@ -142,19 +188,95 @@
         </table>
     </div>
 
+    <!-- Modal de confirmación para eliminar -->
+    <div id="modalConfirmacion" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                Confirmar eliminación
+                            </h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500" id="modal-message">
+                                    ¿Está seguro que desea eliminar el comprobante <strong id="documento-numero"></strong>?
+                                </p>
+                                <p class="text-sm text-gray-400 mt-2">
+                                    El documento será desactivado y no se eliminará físicamente de la base de datos.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <form id="formEliminar" method="post" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                            Sí, eliminar
+                        </button>
+                    </form>
+                    <button type="button" onclick="cerrarModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalCredencialAdmin" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
+                    <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 text-center mt-4">Verificación de Administrador</h3>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-500 text-center mb-4">
+                        Para <span id="accionTexto"></span> este documento, ingrese la clave de administrador:
+                    </p>
+                    <input type="password" id="claveAdmin" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                        placeholder="Clave de administrador">
+                    <div id="errorCredencial" class="text-red-500 text-sm mt-2 hidden">Clave incorrecta</div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="cerrarModalCredencial()" 
+                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                        Cancelar
+                    </button>
+                    <button type="button" onclick="verificarCredencial()" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Verificar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <!-- Paginación -->
     {% if is_paginated %}
     <div class="mt-6 flex items-center justify-between">
         <div class="flex-1 flex justify-between sm:hidden">
             {% if page_obj.has_previous %}
                 <a href="?page={{ page_obj.previous_page_number }}&query={{ request.GET.query }}" 
-                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                     Anterior
                 </a>
             {% endif %}
             {% if page_obj.has_next %}
                 <a href="?page={{ page_obj.next_page_number }}&query={{ request.GET.query }}" 
-                   class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                     Siguiente
                 </a>
             {% endif %}
@@ -175,7 +297,7 @@
                 <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                     {% if page_obj.has_previous %}
                         <a href="?page={{ page_obj.previous_page_number }}&query={{ request.GET.query }}" 
-                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                             <span class="sr-only">Anterior</span>
                             <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/>
@@ -189,7 +311,7 @@
                     
                     {% if page_obj.has_next %}
                         <a href="?page={{ page_obj.next_page_number }}&query={{ request.GET.query }}" 
-                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                             <span class="sr-only">Siguiente</span>
                             <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
@@ -209,4 +331,191 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+// Variables globales para almacenar el estado
+var accionPendiente = null;
+var documentoId = null;
+var documentoNumero = null;
+var urlAccion = null;
+
+function solicitarCredencialAdmin(accion, id, numero) {
+    console.log('Solicitando credencial para:', accion, 'ID:', id); // Debug
+    
+    // Guardar datos en variables globales
+    accionPendiente = accion;
+    documentoId = id;
+    documentoNumero = numero;
+    
+    // Obtener el botón que se clickeó y su URL
+    const boton = event.target;
+    if (accion === 'editar') {
+        urlAccion = boton.getAttribute('data-url-editar');
+        console.log('URL de edición:', urlAccion); // Debug
+    } else if (accion === 'eliminar') {
+        urlAccion = boton.getAttribute('data-url-eliminar');
+        console.log('URL de eliminación:', urlAccion); // Debug
+    }
+    
+    // Si no se obtuvo la URL del data attribute, construirla manualmente
+    if (!urlAccion) {
+        if (accion === 'editar') {
+            urlAccion = `/documentos/comprobantes/editar/${id}/`;
+        } else if (accion === 'eliminar') {
+            urlAccion = `/documentos/comprobantes/eliminar/${id}/`;
+        }
+        console.log('URL construida manualmente:', urlAccion); // Debug
+    }
+    
+    // Actualizar el texto del modal
+    document.getElementById('accionTexto').textContent = accion;
+    
+    // Mostrar modal
+    document.getElementById('modalCredencialAdmin').classList.remove('hidden');
+    document.getElementById('claveAdmin').value = '';
+    document.getElementById('claveAdmin').focus();
+    document.getElementById('errorCredencial').classList.add('hidden');
+}
+
+function cerrarModalCredencial() {
+    document.getElementById('modalCredencialAdmin').classList.add('hidden');
+    document.getElementById('claveAdmin').value = '';
+    document.getElementById('errorCredencial').classList.add('hidden');
+    // NO limpiar las variables aquí inmediatamente
+    // Solo limpiar si el usuario cierra manualmente el modal
+    setTimeout(() => {
+        accionPendiente = null;
+        documentoId = null;
+        documentoNumero = null;
+        urlAccion = null;
+    }, 500);
+}
+
+function verificarCredencial() {
+    const clave = document.getElementById('claveAdmin').value;
+    
+    if (!clave) {
+        document.getElementById('errorCredencial').textContent = 'Ingrese la clave';
+        document.getElementById('errorCredencial').classList.remove('hidden');
+        return;
+    }
+    
+    console.log('Verificando credencial...'); // Debug
+    
+    // Guardar referencias locales de las variables antes de cualquier operación asíncrona
+    const accionLocal = accionPendiente;
+    const idLocal = documentoId;
+    const numeroLocal = documentoNumero;
+    const urlLocal = urlAccion;
+    
+    fetch('{% url "verificar_credencial_admin" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            'clave': clave
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Respuesta del servidor:', data); // Debug
+        
+        if (data.valida) {
+            console.log('Credencial válida. Acción pendiente:', accionLocal); // Debug
+            console.log('ID documento:', idLocal); // Debug
+            console.log('URL acción:', urlLocal); // Debug
+            
+            // Cerrar modal SIN limpiar las variables todavía
+            document.getElementById('modalCredencialAdmin').classList.add('hidden');
+            document.getElementById('claveAdmin').value = '';
+            
+            // Ejecutar la acción inmediatamente
+            if (accionLocal === 'editar') {
+                const urlFinal = urlLocal || `/documentos/comprobantes/editar/${idLocal}/`;
+                console.log('Redirigiendo a:', urlFinal); // Debug
+                window.location.href = urlFinal;
+            } else if (accionLocal === 'eliminar') {
+                confirmarEliminacion(idLocal, numeroLocal);
+            }
+            
+            // Limpiar variables después (aunque con la redirección esto no se ejecutará para editar)
+            setTimeout(() => {
+                accionPendiente = null;
+                documentoId = null;
+                documentoNumero = null;
+                urlAccion = null;
+            }, 500);
+        } else {
+            document.getElementById('errorCredencial').textContent = 'Clave incorrecta';
+            document.getElementById('errorCredencial').classList.remove('hidden');
+            document.getElementById('claveAdmin').value = '';
+            document.getElementById('claveAdmin').focus();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('errorCredencial').textContent = 'Error de conexión';
+        document.getElementById('errorCredencial').classList.remove('hidden');
+    });
+}
+
+function confirmarEliminacion(id, numero) {
+    console.log('Confirmando eliminación para ID:', id); // Debug
+    document.getElementById('documento-numero').textContent = numero;
+    const urlEliminar = urlAccion || `/documentos/comprobantes/eliminar/${id}/`;
+    console.log('URL de eliminación:', urlEliminar); // Debug
+    document.getElementById('formEliminar').action = urlEliminar;
+    document.getElementById('modalConfirmacion').classList.remove('hidden');
+}
+
+function cerrarModal() {
+    document.getElementById('modalConfirmacion').classList.add('hidden');
+}
+
+// Función helper para obtener el CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle de inactivos
+    const toggleInactivos = document.getElementById('toggleInactivos');
+    if (toggleInactivos) {
+        toggleInactivos.addEventListener('change', function() {
+            const url = new URL(window.location);
+            if (this.checked) {
+                url.searchParams.set('mostrar_inactivos', 'true');
+            } else {
+                url.searchParams.delete('mostrar_inactivos');
+            }
+            window.location.href = url.toString();
+        });
+    }
+    
+    // Permitir verificar con Enter
+    const claveInput = document.getElementById('claveAdmin');
+    if (claveInput) {
+        claveInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                verificarCredencial();
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

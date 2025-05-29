@@ -55,6 +55,15 @@ DATABASES = {
     )
 }
 
+# Configuración adicional para Railway con timeouts extendidos (solo opciones válidas)
+""" if DATABASES['default'] and not IS_PRODUCTION:
+    DATABASES['default'].update({
+        'OPTIONS': {
+            'connect_timeout': 30,
+            'sslmode': 'require',
+        }
+    })
+ """
 # Fix para dbshell con Railway
 if not IS_PRODUCTION:
     db_from_env = dj_database_url.parse(os.getenv('DATABASE_URL'))
@@ -165,6 +174,8 @@ CRISPY_TEMPLATE_PACK = "tailwind"
 LOGOUT_REDIRECT_URL = '/usuarios/login/'
 LOGIN_REDIRECT_URL = '/empresa/'
 LOGIN_URL = '/usuarios/login/'
+
+ADMIN_VERIFICATION_KEY = "ADM1N_S3CUR3"  
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

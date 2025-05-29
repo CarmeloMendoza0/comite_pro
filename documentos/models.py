@@ -37,14 +37,37 @@ class DocComprobante(models.Model):
     fecha = models.DateField(verbose_name="Fecha")
     monto_total = models.DecimalField(max_digits=15, decimal_places=2, verbose_name="Monto")
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='Emitido')
+    activo = models.BooleanField(default=True, verbose_name="Activo", help_text="Indica si el documento está activo en el sistema")
 
     def __str__(self):
-        return f"{self.numero_documento} - {self.tipo_documento.nombre}"
+        estado_str = " (INACTIVO)" if not self.activo else ""
+        return f"{self.numero_documento} - {self.tipo_documento.nombre}{estado_str}"
     
     def clean(self):
     # Validar que el monto total sea positivo
         if self.monto_total <= 0:
             raise ValidationError('El monto total debe ser mayor que cero.')
+        
+    def desactivar(self):
+        """Método para desactivar el documento de forma controlada"""
+        self.activo = False
+        self.save()
+    
+    def activar(self):
+        """Método para reactivar el documento si es necesario"""
+        self.activo = True
+        self.save()
+
+    # Managers personalizados para filtrar documentos
+    @classmethod
+    def activos(cls):
+        """Retorna solo documentos activos"""
+        return cls.objects.filter(activo=True)
+    
+    @classmethod
+    def inactivos(cls):
+        """Retorna solo documentos inactivos"""
+        return cls.objects.filter(activo=False)
 
 
 

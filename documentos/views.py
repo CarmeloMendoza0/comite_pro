@@ -19,6 +19,31 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import user_passes_test
 from comite_pro.utils import is_admin, is_accountant  
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.conf import settings
+import json
+
+@login_required
+@csrf_exempt
+def verificar_credencial_admin(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            clave_ingresada = data.get('clave', '')
+            
+            # Verificar contra la clave configurada en settings
+            clave_correcta = getattr(settings, 'ADMIN_VERIFICATION_KEY', 'ADM1N_S3CUR3')
+            
+            return JsonResponse({
+                'valida': clave_ingresada == clave_correcta
+            })
+        except:
+            return JsonResponse({'valida': False})
+    
+    return JsonResponse({'valida': False})
+
 # Vistas para TipoDocumento
 
 class TipoDocumentoListView(LoginRequiredMixin, generic.ListView):
@@ -65,26 +90,33 @@ class DocComprobanteListView(LoginRequiredMixin, generic.ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Lista de Comprobantes'
+        #Sobre filtros activos
+        context['mostrar_inactivos'] = self.request.GET.get('mostrar_inactivos') == 'true'
         return context
     
     def get_queryset(self):
-        queryset = super().get_queryset()
-        query = self.request.GET.get('query')
+        # Por defecto, mostrar solo documentos activos queryset = super().get_queryset()
+        if self.request.GET.get('mostrar_inactivos') == 'true':
+            queryset = DocComprobante.objects.all()
+        else:
+            queryset = DocComprobante.activos()
 
+        query = self.request.GET.get('query')
         if query:
             queryset = queryset.filter(
                 Q(numero_documento__icontains=query) |
                 Q(empresa__razon_social__icontains=query) |
                 Q(tipo_documento__nombre__icontains=query)
             ).distinct()
-        return queryset
+
+        return queryset.order_by('-fecha', 'numero_documento')
 
 class RegistroDocComprobanteView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         comprobante_form = DocComprobanteForm()
         transaccion_form = TransaccionForm()
         movimiento_formset = MovimientoFormSet()
-        cuentas = Cuenta.objects.filter(nivel=3) # Solo cuentas de nivel 3
+        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo') # Solo cuentas de nivel 3
 
         return render(request, 'documentos/doccomprobante_form.html', {
             'comprobante_form': comprobante_form,
@@ -99,7 +131,7 @@ class RegistroDocComprobanteView(LoginRequiredMixin, View):
         comprobante_form = DocComprobanteForm(request.POST)
         transaccion_form = TransaccionForm(request.POST)
         movimiento_formset = MovimientoFormSet(request.POST)
-        cuentas = Cuenta.objects.filter(nivel=3)  # Solo cuentas de nivel 3
+        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Solo cuentas de nivel 3 (nivel=3)
 
         # Obtener el tipo de movimiento del formulario
         tipo_movimiento = request.POST.get('tipo_movimiento')
@@ -261,7 +293,7 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
         movimiento_formset = MovimientoFormSet(instance=transaccion)
 
         # Obtener lista de cuentas disponibles
-        cuentas = Cuenta.objects.filter(nivel=3)  # Solo cuentas de nivel 3
+        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Solo cuentas de nivel 3
 
         # Calcular totales para mostrarlos inicialmente
         movimientos = Movimiento.objects.filter(transaccion=transaccion)
@@ -293,7 +325,7 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
         transaccion_form = TransaccionForm(request.POST, instance=transaccion)
         movimiento_formset = MovimientoFormSet(request.POST, instance=transaccion)
 
-        cuentas = Cuenta.objects.filter(nivel=3)  # Solo cuentas de nivel 3
+        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Solo cuentas de nivel 3 (nivel=3)
 
         # Obtener el tipo de movimiento del formulario
         tipo_movimiento = request.POST.get('tipo_movimiento')
@@ -446,3 +478,18 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
                 'is_edit': True,
                 'titulo': 'Editar Comprobante',
             })
+
+class EliminarDocComprobanteView(LoginRequiredMixin, View):
+    def post(self, request, pk, *args, **kwargs):
+        comprobante = get_object_or_404(DocComprobante, pk=pk)
+        
+        # Verificar que el comprobante esté activo
+        if not comprobante.activo:
+            messages.warning(request, 'El comprobante ya está desactivado.')
+            return redirect('doccomprobante_list')
+        
+        # Desactivar el comprobante en lugar de eliminarlo
+        comprobante.desactivar()
+        
+        messages.success(request, f'El comprobante {comprobante.numero_documento} ha sido desactivado correctamente.')
+        return redirect('doccomprobante_list')

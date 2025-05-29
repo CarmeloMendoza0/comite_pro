@@ -30,9 +30,33 @@ class Transaccion(models.Model):
     tipo_operacion = models.CharField(max_length=15, choices=TIPO_POLIZA_CHOICES, default='Transacción')
     numero_poliza = models.PositiveIntegerField(null=True, blank=True, verbose_name="Poliza")
     tipo_documento = models.ForeignKey(TipoDocumento, on_delete=models.SET_NULL, null=True, blank=True)
+    activo = models.BooleanField(default=True, verbose_name="Activo", 
+                                help_text="Indica si la póliza está activa en el sistema")
 
     def __str__(self):
-        return f"{self.descripcion} - {self.fecha}"
+        estado_str = " (INACTIVA)" if not self.activo else ""
+        return f"{self.descripcion} - {self.fecha}{estado_str}"
+    
+    def desactivar(self):
+        """Método para desactivar la póliza de forma controlada"""
+        self.activo = False
+        self.save()
+    
+    def activar(self):
+        """Método para reactivar la póliza si es necesario"""
+        self.activo = True
+        self.save()
+
+    # Managers personalizados para filtrar pólizas
+    @classmethod
+    def activos(cls):
+        """Retorna solo pólizas activas"""
+        return cls.objects.filter(activo=True, tipo_operacion='Póliza')
+    
+    @classmethod
+    def inactivos(cls):
+        """Retorna solo pólizas inactivas"""
+        return cls.objects.filter(activo=False, tipo_operacion='Póliza')
     
 class Movimiento(models.Model):
     transaccion = models.ForeignKey(Transaccion, on_delete=models.CASCADE, related_name='movimientos')

@@ -12,11 +12,36 @@ from .forms import MovimientoFormSet, PolizaForm
 from catalogo_cuentas.models import Cuenta
 from .models import Transaccion, Movimiento
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.conf import settings
+import json
+
+@login_required
+@csrf_exempt
+def verificar_credencial_admin(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            clave_ingresada = data.get('clave', '')
+            
+            # Verificar contra la clave configurada en settings
+            clave_correcta = getattr(settings, 'ADMIN_VERIFICATION_KEY', 'ADM1N_S3CUR3')
+            
+            return JsonResponse({
+                'valida': clave_ingresada == clave_correcta
+            })
+        except:
+            return JsonResponse({'valida': False})
+    
+    return JsonResponse({'valida': False})
+
 class RegistrarPolizaView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         poliza_form = PolizaForm(initial={'tipo_operacion': 'Póliza'})
         movimiento_formset = MovimientoFormSet()
-        cuentas = Cuenta.objects.all()  # Todas las cuentas disponibles
+        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Todas las cuentas disponibles
         
         return render(request, 'transacciones/registro_poliza.html', {
             'poliza_form': poliza_form,
@@ -29,7 +54,7 @@ class RegistrarPolizaView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         poliza_form = PolizaForm(request.POST)
         movimiento_formset = MovimientoFormSet(request.POST)
-        cuentas = Cuenta.objects.all()  # Todas las cuentas disponibles
+        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Todas las cuentas disponibles
 
         # Validar los formularios
         if poliza_form.is_valid() and movimiento_formset.is_valid():
@@ -151,14 +176,24 @@ class PolizaListView(LoginRequiredMixin, generic.ListView):
     model = Transaccion
     template_name = 'transacciones/poliza_list.html'
     context_object_name = 'polizas'
-    paginate_by = 10  # Puedes ajustar este valor según tus necesidades
+    paginate_by = 10 
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Agregar información sobre filtros activos
+        context['mostrar_inactivos'] = self.request.GET.get('mostrar_inactivos') == 'true'
+        return context
+
+    # Obtener el término de búsqueda desde la consulta GET query = self.request.GET.get('query', '') queryset = Transaccion.objects.filter(tipo_operacion='Póliza').order_by('-fecha')
     def get_queryset(self):
-        # Obtener el término de búsqueda desde la consulta GET
         query = self.request.GET.get('query', '')
-        queryset = Transaccion.objects.filter(tipo_operacion='Póliza').order_by('-fecha')
-
+        #Por defecto, mostrar solo pólizas activas
+        if self.request.GET.get('mostrar_inactivos') == 'true':
+            queryset = Transaccion.objects.filter(tipo_operacion='Póliza')
+        else:
+            queryset = Transaccion.activos()
         # Filtrar las transacciones para obtener solo las pólizas que coincidan con el término de búsqueda
+        queryset = queryset.order_by('-fecha')
         if query:
             queryset = queryset.filter(
                 Q(numero_poliza__icontains=query) |
@@ -333,4 +368,19 @@ class ActualizarPolizaView(LoginRequiredMixin, View):
                 'total_haber': sum(form.cleaned_data.get('haber', 0) or 0 for form in movimiento_formset if form.is_valid() and not form.cleaned_data.get('DELETE', False)),
             })
 
+class EliminarPolizaView(LoginRequiredMixin, View):
+    def post(self, request, pk, *args, **kwargs):
+        poliza = get_object_or_404(Transaccion, pk=pk, tipo_operacion='Póliza')
+        
+        # Verificar que la póliza esté activa
+        if not poliza.activo:
+            messages.warning(request, 'La póliza ya está desactivada.')
+            return redirect('poliza_list')
+        
+        # Desactivar la póliza en lugar de eliminarla
+        poliza.desactivar()
+        
+        messages.success(request, f'La póliza {poliza.numero_poliza} ha sido desactivada correctamente.')
+        return redirect('poliza_list')
     
+

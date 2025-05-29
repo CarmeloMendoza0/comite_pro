@@ -3,6 +3,8 @@
 
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import user_passes_test
+from comite_pro.utils import is_admin, is_accountant 
 from django.contrib.auth.decorators import login_required
 from django.views import generic
 from django.contrib import messages
@@ -10,7 +12,7 @@ from .models import Proveedor, Persona
 from .forms import ProveedorForm, ClienteForm, DonanteForm
 
 # Cliente Views
-@method_decorator(login_required, name='dispatch')
+@method_decorator([login_required, user_passes_test(is_admin)], name='dispatch')
 class ClienteCreateView(generic.CreateView):
     model = Persona
     form_class = ClienteForm
@@ -33,7 +35,7 @@ class ClienteCreateView(generic.CreateView):
         context['url_list'] = reverse_lazy('cliente_list')
         return context
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator([login_required, user_passes_test(is_admin)], name='dispatch')
 class ClienteUpdateView(generic.UpdateView):
     model = Persona
     form_class = ClienteForm
@@ -53,7 +55,7 @@ class ClienteUpdateView(generic.UpdateView):
         context['url_list'] = reverse_lazy('cliente_list')
         return context
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator([login_required, user_passes_test(is_admin)], name='dispatch')
 class ClienteListView(generic.ListView):
     model = Persona
     template_name = 'terceros/list_base.html'
@@ -84,7 +86,7 @@ class ClienteListView(generic.ListView):
         return context
 
 # Donante Views
-@method_decorator(login_required, name='dispatch')
+@method_decorator([login_required, user_passes_test(is_admin)], name='dispatch')
 class DonanteCreateView(generic.CreateView):
     model = Persona
     form_class = DonanteForm
@@ -107,7 +109,7 @@ class DonanteCreateView(generic.CreateView):
         context['url_list'] = reverse_lazy('donante_list')
         return context
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator([login_required, user_passes_test(is_admin)], name='dispatch')
 class DonanteUpdateView(generic.UpdateView):
     model = Persona
     form_class = DonanteForm
@@ -127,7 +129,7 @@ class DonanteUpdateView(generic.UpdateView):
         context['url_list'] = reverse_lazy('donante_list')
         return context
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator([login_required, user_passes_test(is_admin)], name='dispatch')
 class DonanteListView(generic.ListView):
     model = Persona
     template_name = 'terceros/list_base.html'
@@ -158,7 +160,7 @@ class DonanteListView(generic.ListView):
         return context
 
 # Proveedor Views
-@method_decorator(login_required, name='dispatch')
+@method_decorator([login_required, user_passes_test(is_admin)], name='dispatch')
 class ProveedorCreateView(generic.CreateView):
     model = Proveedor
     form_class = ProveedorForm
@@ -175,7 +177,7 @@ class ProveedorCreateView(generic.CreateView):
         context['url_list'] = reverse_lazy('proveedor_list')
         return context
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator([login_required, user_passes_test(is_admin)], name='dispatch')
 class ProveedorUpdateView(generic.UpdateView):
     model = Proveedor
     form_class = ProveedorForm
@@ -191,8 +193,9 @@ class ProveedorUpdateView(generic.UpdateView):
         context['title'] = 'Editar Proveedor'
         context['url_list'] = reverse_lazy('proveedor_list')
         return context
-
-@method_decorator(login_required, name='dispatch')
+    
+#@method_decorator(login_required, user_passes_test(is_admin), name='dispatch')
+@method_decorator([login_required, user_passes_test(is_admin)], name='dispatch')
 class ProveedorListView(generic.ListView):
     model = Proveedor
     template_name = 'terceros/list_base.html'
