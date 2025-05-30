@@ -61,6 +61,14 @@
     .table-container::-webkit-scrollbar-thumb:hover {
       background: #555;
     }
+
+    /* Overlay para modales que oscurece también el sidebar */
+    .modal-overlay-full {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 70; /* Mayor que el sidebar z-[65] */
+    }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -132,7 +140,7 @@
     <!-- Menú Lateral -->
     {% if user.is_authenticated %}
     <aside id="sidebar" class="
-      fixed lg:static top-0 left-0 z-[60]
+      fixed lg:static top-0 left-0 z-[65]
       w-64 h-screen lg:h-[calc(100vh-66px)]
       bg-white border-r border-gray-200 shadow-lg lg:shadow-none
       transition-transform duration-300 ease-in-out
