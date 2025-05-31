@@ -293,7 +293,7 @@ class EmpresaFormView(LoginRequiredMixin, generic.CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Crear Nueva Empresa'
+        context['title'] = 'Crear Nueva Organización'
         return context
     
 @method_decorator(user_passes_test(is_admin), name='dispatch')
@@ -311,9 +311,10 @@ class EmpresaUpdateView(LoginRequiredMixin, generic.UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Editar Empresa'
+        context['title'] = 'Editar Organización'
         return context
-    
+
+@method_decorator(user_passes_test(is_admin), name='dispatch')    
 class EmpresasListView(LoginRequiredMixin, generic.ListView):
     model = Empresa
     template_name = 'empresa/empresa_list.html' 
@@ -328,7 +329,7 @@ class EmpresasListView(LoginRequiredMixin, generic.ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Lista de Empresas'
+        context['title'] = 'Datos de la Organización'
         return context
 
 @method_decorator(user_passes_test(is_admin), name='dispatch')
@@ -340,7 +341,7 @@ class PeriodoContableCreateView(LoginRequiredMixin, generic.CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Crear Nuevo Periodo Contable'
+        context['title'] = 'Crear Nuevo Período Contable'
         return context
 
 @method_decorator(user_passes_test(is_admin), name='dispatch')
@@ -353,7 +354,7 @@ class PeriodoContableListView(LoginRequiredMixin, generic.ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Lista de Periodos Contables'
+        context['title'] = 'Lista de Períodos Contables'
         return context
 
 @method_decorator(user_passes_test(is_admin), name='dispatch')
