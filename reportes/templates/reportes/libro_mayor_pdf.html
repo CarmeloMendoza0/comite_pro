@@ -293,12 +293,12 @@
                         Q{{ movimiento.saldo_anterior|stringformat:".2f" }}
                     </td>                    
                     <td class="col-debe valor-monetario">
-                        {% if movimiento.debe and movimiento.debe != 0 %}
+                        {% if movimiento.debe is not None%}
                             Q{{ movimiento.debe|stringformat:".2f" }}
                         {% endif %}
                     </td>
                     <td class="col-haber valor-monetario">
-                        {% if movimiento.haber and movimiento.haber != 0 %}
+                        {% if movimiento.haber is not None%}
                             Q{{ movimiento.haber|stringformat:".2f" }}
                         {% endif %}
                     </td>

@@ -701,14 +701,14 @@ class ExportarLibroDiarioExcelView(LoginRequiredMixin, View):
                 
                 # Debe
                 debe_value = float(movimiento.debe) if movimiento.debe else 0
-                if debe_value > 0:
+                if debe_value >= 0:
                     ws.cell(row=current_row, column=3, value=debe_value)
                     ws.cell(row=current_row, column=3).number_format = '"Q"#,##0.00'
                     ws.cell(row=current_row, column=3).alignment = Alignment(horizontal='right')
                 
                 # Haber
                 haber_value = float(movimiento.haber) if movimiento.haber else 0
-                if haber_value > 0:
+                if haber_value >= 0:
                     ws.cell(row=current_row, column=4, value=haber_value)
                     ws.cell(row=current_row, column=4).number_format = '"Q"#,##0.00'
                     ws.cell(row=current_row, column=4).alignment = Alignment(horizontal='right')
@@ -1002,14 +1002,14 @@ class ExportarLibroMayorExcelView(LoginRequiredMixin, View):
                 
                 # Debe
                 debe_value = float(movimiento.debe or 0)
-                if debe_value > 0:
+                if debe_value >= 0:
                     ws.cell(row=current_row, column=4, value=debe_value)
                     ws.cell(row=current_row, column=4).number_format = '"Q"#,##0.00'
                 total_debe += debe_value
                 
                 # Haber
                 haber_value = float(movimiento.haber or 0)
-                if haber_value > 0:
+                if haber_value >= 0:
                     ws.cell(row=current_row, column=5, value=haber_value)
                     ws.cell(row=current_row, column=5).number_format = '"Q"#,##0.00'
                 total_haber += haber_value

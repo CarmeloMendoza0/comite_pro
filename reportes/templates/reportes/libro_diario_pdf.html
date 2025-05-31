@@ -199,10 +199,10 @@
                         &nbsp;&nbsp;&nbsp;&nbsp;{{ movimiento.cuenta }}
                     </td>
                     <td class="col-debe valor-monetario">
-                        {% if movimiento.debe %}{{ movimiento.debe|stringformat:".2f" }}{% endif %}
+                        {% if movimiento.debe is not None%}{{ movimiento.debe|stringformat:".2f" }}{% endif %}
                     </td>
                     <td class="col-haber valor-monetario">
-                        {% if movimiento.haber %}{{ movimiento.haber|stringformat:".2f" }}{% endif %}
+                        {% if movimiento.haber is not None%}{{ movimiento.haber|stringformat:".2f" }}{% endif %}
                     </td>
                 </tr>
                 {% endfor %}
