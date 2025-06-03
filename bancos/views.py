@@ -42,7 +42,7 @@ def verificar_credencial_admin(request):
 class RegistroDocumentoBancoView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         documento_form = DocumentoBancoForm()
-        transaccion_form = TransaccionForm()
+        transaccion_form = TransaccionForm(is_edit=False)
         movimiento_formset = MovimientoFormSet()
         cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  
         
@@ -57,12 +57,26 @@ class RegistroDocumentoBancoView(LoginRequiredMixin, View):
 
     def post(self, request, *args, **kwargs):
         documento_form = DocumentoBancoForm(request.POST)
-        transaccion_form = TransaccionForm(request.POST)
+        transaccion_form = TransaccionForm(request.POST, is_edit=False)
         movimiento_formset = MovimientoFormSet(request.POST)
         cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')
 
         # Obtener el tipo de movimiento del formulario
         tipo_movimiento = request.POST.get('tipo_movimiento')
+
+        # Definir función helper para renderizar en caso de error
+        def render_error_response(error_message=None):
+            if error_message:
+                messages.error(request, error_message)
+            return render(request, 'bancos/documentobanco_form.html', {
+                'documento_form': documento_form,
+                'transaccion_form': transaccion_form,
+                'movimiento_formset': movimiento_formset,
+                'cuentas': cuentas,
+                'is_edit': False,
+                'titulo': 'Registrar Documento Bancario',
+                'tipo_movimiento_previo': tipo_movimiento,  # Pasar el tipo seleccionado
+            })
 
         # Validar los formularios
         if documento_form.is_valid() and transaccion_form.is_valid() and movimiento_formset.is_valid():
@@ -72,38 +86,14 @@ class RegistroDocumentoBancoView(LoginRequiredMixin, View):
                     debe = form.cleaned_data.get('debe', 0) or 0
                     haber = form.cleaned_data.get('haber', 0) or 0
                     if (debe and haber) or (not debe and not haber):
-                        messages.error(request, 'Debe ingresar un valor en Debe o en Haber, pero no en ambos.')
-                        return render(request, 'bancos/documentobanco_form.html', {
-                            'documento_form': documento_form,
-                            'transaccion_form': transaccion_form,
-                            'movimiento_formset': movimiento_formset,
-                            'cuentas': cuentas,
-                            'is_edit': False,
-                            'titulo': 'Registrar Documento Bancario',
-                        })
+                        return render_error_response('Debe ingresar un valor en Debe o en Haber, pero no en ambos.')
                     
             # Validar que el periodo contable esté abierto
             periodo = transaccion_form.cleaned_data.get('periodo')
             if not periodo:
-                messages.error(request, 'Debe seleccionar un periodo para la transacción.')
-                return render(request, 'bancos/documentobanco_form.html', {
-                    'documento_form': documento_form,
-                    'transaccion_form': transaccion_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': False,
-                    'titulo': 'Registrar Documento Bancario',
-                })
+                return render_error_response('Debe seleccionar un periodo para la transacción.')
             elif periodo.estado != 'Abierto':
-                messages.error(request, 'El periodo contable está cerrado. No puede realizar operaciones.')
-                return render(request, 'bancos/documentobanco_form.html', {
-                    'documento_form': documento_form,
-                    'transaccion_form': transaccion_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': False,
-                    'titulo': 'Registrar Documento Bancario',
-                })
+                return render_error_response('No puede realizar operaciones.')
 
             try:
                 with transaction.atomic():
@@ -179,15 +169,7 @@ class RegistroDocumentoBancoView(LoginRequiredMixin, View):
                 return redirect('documentobanco_list')
             
             except Exception as e:
-                messages.error(request, f'Error al guardar: {str(e)}')
-                return render(request, 'bancos/documentobanco_form.html', {
-                    'documento_form': documento_form,
-                    'transaccion_form': transaccion_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': False,
-                    'titulo': 'Registrar Documento Bancario',
-                })
+                return render_error_response(f'Error al guardar: {str(e)}')
         else:
             # Mostrar errores específicos en consola para depuración
             if not documento_form.is_valid():
@@ -199,16 +181,7 @@ class RegistroDocumentoBancoView(LoginRequiredMixin, View):
             if not movimiento_formset.is_valid():
                 print("Errores en MovimientoFormSet:", movimiento_formset.errors)
 
-            messages.error(request, 'Por favor, corrige los errores en el formulario.')
-            return render(request, 'bancos/documentobanco_form.html', {
-                'documento_form': documento_form,
-                'transaccion_form': transaccion_form,
-                'movimiento_formset': movimiento_formset,
-                'cuentas' : cuentas,
-                'is_edit': False,
-                'titulo': 'Registrar Documento Bancario',
-            })
-
+            return render_error_response('Por favor, corrige los errores en el formulario.')
 
 class DocumentoBancoListView(LoginRequiredMixin, generic.ListView):
     model = DocumentoBanco
@@ -257,7 +230,10 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
 
         # Inicializar formularios con instancias existentes
         documento_form = DocumentoBancoForm(instance=documento_banco, initial=initial_data)
-        transaccion_form = TransaccionForm(instance=transaccion, initial={'fecha': transaccion.fecha.strftime('%Y-%m-%d') if transaccion.fecha else None})
+        transaccion_form = TransaccionForm(
+            instance=transaccion, 
+            initial={'fecha': transaccion.fecha.strftime('%Y-%m-%d') if transaccion.fecha else None}, 
+            is_edit=True)
         movimiento_formset = MovimientoFormSet(instance=transaccion)
 
         # Obtener lista de cuentas disponibles
@@ -268,6 +244,13 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
         total_debe = sum(mov.debe or 0 for mov in movimientos)
         total_haber = sum(mov.haber or 0 for mov in movimientos)
 
+        # Determinar el tipo de movimiento basado en la transacción existente
+        tipo_movimiento_actual = None
+        if transaccion.tipo_transaccion == 'Ingreso':
+            tipo_movimiento_actual = 'ingreso'
+        elif transaccion.tipo_transaccion == 'Egreso':
+            tipo_movimiento_actual = 'egreso'
+
         return render(request, 'bancos/documentobanco_form.html', {
             'documento_form': documento_form,
             'transaccion_form': transaccion_form,
@@ -277,6 +260,7 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
             'titulo': 'Editar Documento Bancario',
             'total_debe': total_debe,
             'total_haber': total_haber,
+            'tipo_movimiento_previo': tipo_movimiento_actual,  # Pasar el tipo actual
         })
     
     def post(self, request, pk, *args, **kwargs):
@@ -290,13 +274,27 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
         
         # Inicializar formularios con datos del POST e instancias existentes
         documento_form = DocumentoBancoForm(request.POST, instance=documento_banco)
-        transaccion_form = TransaccionForm(request.POST, instance=transaccion)
+        transaccion_form = TransaccionForm(request.POST, instance=transaccion, is_edit=True)
         movimiento_formset = MovimientoFormSet(request.POST, instance=transaccion)
 
         cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')
 
         # Obtener el tipo de movimiento del formulario
         tipo_movimiento = request.POST.get('tipo_movimiento')   
+
+        # Función helper para renderizar en caso de error
+        def render_error_response(error_message=None):
+            if error_message:
+                messages.error(request, error_message)
+            return render(request, 'bancos/documentobanco_form.html', {
+                'documento_form': documento_form,
+                'transaccion_form': transaccion_form,
+                'movimiento_formset': movimiento_formset,
+                'cuentas': cuentas,
+                'is_edit': True,
+                'titulo': 'Editar Documento Bancario',
+                'tipo_movimiento_previo': tipo_movimiento,  # Preservar el tipo seleccionado
+            })
 
         # Validar formularios
         if documento_form.is_valid() and transaccion_form.is_valid() and movimiento_formset.is_valid():
@@ -307,38 +305,14 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
                     debe = form.cleaned_data.get('debe', 0) or 0
                     haber = form.cleaned_data.get('haber', 0) or 0
                     if (debe and haber) or (not debe and not haber):
-                        messages.error(request, 'Debe ingresar un valor en Debe o en Haber, pero no en ambos.')
-                        return render(request, 'bancos/documentobanco_form.html', {
-                            'documento_form': documento_form,
-                            'transaccion_form': transaccion_form,
-                            'movimiento_formset': movimiento_formset,
-                            'cuentas': cuentas,
-                            'is_edit': True,
-                            'titulo': 'Editar Documento Bancario',
-                        })
+                        return render_error_response('Debe ingresar un valor en Debe o en Haber, pero no en ambos.')
                     
             # Verificar periodo contable
             periodo = transaccion_form.cleaned_data.get('periodo')
             if not periodo:
-                messages.error(request, 'Debe seleccionar un periodo para la transacción.')
-                return render(request, 'bancos/documentobanco_form.html', {
-                    'documento_form': documento_form,
-                    'transaccion_form': transaccion_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': True,
-                    'titulo': 'Editar Documento Bancario',
-                })
+                return render_error_response('Debe seleccionar un periodo para la transacción.')
             elif periodo.estado != 'Abierto':
-                messages.error(request, 'El periodo contable está cerrado. No puede realizar operaciones.')
-                return render(request, 'bancos/documentobanco_form.html', {
-                    'documento_form': documento_form,
-                    'transaccion_form': transaccion_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': True,
-                    'titulo': 'Editar Documento Bancario',
-                })
+                return render_error_response('No puede realizar operaciones.')
             
             try:
                 with transaction.atomic():
@@ -395,7 +369,7 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
                     for i, mov in enumerate(movimientos_activos):
                         print(f"  Mov {i+1}: Debe={mov.debe}, Haber={mov.haber}")
 
-                    if total_debe != total_haber:
+                    if abs(total_debe - total_haber) > 0.01:  # Usar tolerancia de 0.01
                         raise ValidationError('La transacción no está balanceada. El total del Debe debe ser igual al total del Haber.')
                     
                     # NO sobrescribir el monto si ya está establecido
@@ -414,17 +388,8 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
             except Exception as e:
                 # Mostrar errores específicos en consola para depuración
                 print(f"Error al guardar: {str(e)}")
-                
-                messages.error(request, f'Error al guardar: {str(e)}')
-                return render(request, 'bancos/documentobanco_form.html', {
-                    'documento_form': documento_form,
-                    'transaccion_form': transaccion_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': True,
-                    'titulo': 'Editar Documento Bancario',
-                })
-                
+                return render_error_response(f'Error al guardar: {str(e)}')
+            
         else:
             # Mostrar errores específicos en consola para depuración
             if not documento_form.is_valid():
@@ -438,14 +403,7 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
             
             messages.error(request, 'Por favor, corrige los errores en el formulario.')
 
-        return render(request, 'bancos/documentobanco_form.html', {
-            'documento_form': documento_form,
-            'transaccion_form': transaccion_form,
-            'movimiento_formset': movimiento_formset,
-            'cuentas': cuentas,
-            'is_edit': True,
-            'titulo': 'Editar Documento Bancario',
-        })    
+            return render_error_response('Por favor, corrige los errores en el formulario.') 
     
 
 class EliminarDocumentoBancoView(LoginRequiredMixin, View):

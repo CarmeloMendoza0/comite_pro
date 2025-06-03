@@ -339,8 +339,25 @@
                 $('#tipo-text').text('EGRESO').addClass('text-red-700');
             }
         {% else %}
-            // Solo mostrar el modal si es un nuevo registro
-            $('#tipoMovimientoModal').removeClass('hidden');
+            // Solo mostrar el modal si es un nuevo registro Y no hay tipo seleccionado previamente
+            const tipoMovimientoPrevio = "{{ tipo_movimiento_previo }}";
+            if (!tipoMovimientoPrevio) {
+                $('#tipoMovimientoModal').removeClass('hidden');
+            } else {
+                // Restaurar el tipo seleccionado previamente
+                tipoMovimiento = tipoMovimientoPrevio;
+                $('#tipoMovimiento').val(tipoMovimientoPrevio);
+                
+                if (tipoMovimientoPrevio === 'ingreso') {
+                    $('#cliente-container').removeClass('hidden');
+                    $('#tipo-seleccionado').removeClass('hidden').addClass('bg-green-50 border-green-200 border');
+                    $('#tipo-text').text('INGRESO').addClass('text-green-700');
+                } else if (tipoMovimientoPrevio === 'egreso') {
+                    $('#proveedor-container').removeClass('hidden');
+                    $('#tipo-seleccionado').removeClass('hidden').addClass('bg-red-50 border-red-200 border');
+                    $('#tipo-text').text('EGRESO').addClass('text-red-700');
+                }
+            }
         {% endif %}
 
         {% if is_edit %}

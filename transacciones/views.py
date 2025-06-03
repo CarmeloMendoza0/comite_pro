@@ -39,7 +39,7 @@ def verificar_credencial_admin(request):
 
 class RegistrarPolizaView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
-        poliza_form = PolizaForm(initial={'tipo_operacion': 'Póliza'})
+        poliza_form = PolizaForm(initial={'tipo_operacion': 'Póliza'}, is_edit=False)
         movimiento_formset = MovimientoFormSet()
         cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Todas las cuentas disponibles
         
@@ -52,10 +52,22 @@ class RegistrarPolizaView(LoginRequiredMixin, View):
         })
 
     def post(self, request, *args, **kwargs):
-        poliza_form = PolizaForm(request.POST)
+        poliza_form = PolizaForm(request.POST, is_edit=False)
         movimiento_formset = MovimientoFormSet(request.POST)
         cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Todas las cuentas disponibles
 
+        # Definir función helper para renderizar en caso de error
+        def render_error_response(error_message=None):
+            if error_message:
+                messages.error(request, error_message)
+            return render(request, 'transacciones/registro_poliza.html', {
+                'poliza_form': poliza_form,
+                'movimiento_formset': movimiento_formset,
+                'cuentas': cuentas,
+                'is_edit': False,
+                'titulo': 'Registrar Póliza',
+            })
+        
         # Validar los formularios
         if poliza_form.is_valid() and movimiento_formset.is_valid():
             # Validar que los movimientos tengan valores correctos de Debe y Haber
@@ -64,35 +76,14 @@ class RegistrarPolizaView(LoginRequiredMixin, View):
                     debe = form.cleaned_data.get('debe', 0) or 0
                     haber = form.cleaned_data.get('haber', 0) or 0
                     if (debe and haber) or (not debe and not haber):
-                        messages.error(request, 'Debe ingresar un valor en Debe o en Haber, pero no en ambos ni dejar ambos vacíos.')
-                        return render(request, 'transacciones/registro_poliza.html', {
-                            'poliza_form': poliza_form,
-                            'movimiento_formset': movimiento_formset,
-                            'cuentas': cuentas,
-                            'is_edit': False,
-                            'titulo': 'Registrar Póliza',
-                        })
+                        return render_error_response('Debe ingresar un valor en Debe o en Haber, pero no en ambos ni dejar ambos vacíos.')
         
             # Validar que el periodo contable esté abierto
             periodo = poliza_form.cleaned_data.get('periodo')
             if not periodo:
-                messages.error(request, 'Debe seleccionar un periodo contable.')
-                return render(request, 'transacciones/registro_poliza.html', {
-                    'poliza_form': poliza_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': False,
-                    'titulo': 'Registrar Póliza',
-                })
+                return render_error_response('Debe seleccionar un periodo contable.')
             elif periodo.estado != 'Abierto':
-                messages.error(request, 'El periodo contable está cerrado. No puede realizar operaciones.')
-                return render(request, 'transacciones/registro_poliza.html', {
-                    'poliza_form': poliza_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': False,
-                    'titulo': 'Registrar Póliza',
-                })
+                return render_error_response('No puede realizar operaciones.')
             
             try:
                 with transaction.atomic():
@@ -146,15 +137,7 @@ class RegistrarPolizaView(LoginRequiredMixin, View):
             except Exception as e:
                 # Capturar errores detallados para depuración
                 print(f"Error al guardar: {str(e)}")
-                
-                messages.error(request, f'Error al guardar: {str(e)}')
-                return render(request, 'transacciones/registro_poliza.html', {
-                    'poliza_form': poliza_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': False,
-                    'titulo': 'Registrar Póliza',
-                })
+                return render_error_response(f'Error al guardar: {str(e)}')
         else:
             # Mostrar errores específicos en consola para depuración
             if not poliza_form.is_valid():
@@ -163,14 +146,7 @@ class RegistrarPolizaView(LoginRequiredMixin, View):
             if not movimiento_formset.is_valid():
                 print("Errores en MovimientoFormSet:", movimiento_formset.errors)
                 
-            messages.error(request, 'Por favor, corrige los errores en el formulario.')
-            return render(request, 'transacciones/registro_poliza.html', {
-                'poliza_form': poliza_form,
-                'movimiento_formset': movimiento_formset,
-                'cuentas': cuentas,
-                'is_edit': False,
-                'titulo': 'Registrar Póliza',
-            })
+            return render_error_response('Por favor, corrige los errores en el formulario.')
         
 class PolizaListView(LoginRequiredMixin, generic.ListView):
     model = Transaccion
@@ -213,7 +189,7 @@ class ActualizarPolizaView(LoginRequiredMixin, View):
         }
 
         # Inicializar formularios con instancias existentes
-        poliza_form = PolizaForm(instance=poliza, initial=initial_data)
+        poliza_form = PolizaForm(instance=poliza, initial=initial_data,  is_edit=True)
         movimiento_formset = MovimientoFormSet(instance=poliza)
 
         # Obtener lista de cuentas disponibles (todas las cuentas)
@@ -239,9 +215,21 @@ class ActualizarPolizaView(LoginRequiredMixin, View):
         poliza = get_object_or_404(Transaccion, pk=pk, tipo_operacion='Póliza')
         
         # Inicializar formularios con datos del POST e instancias existentes
-        poliza_form = PolizaForm(request.POST, instance=poliza)
+        poliza_form = PolizaForm(request.POST, instance=poliza, is_edit=True)
         movimiento_formset = MovimientoFormSet(request.POST, instance=poliza)
         cuentas = Cuenta.objects.all()
+
+        # Función helper para renderizar en caso de error
+        def render_error_response(error_message=None):
+            if error_message:
+                messages.error(request, error_message)
+            return render(request, 'transacciones/registro_poliza.html', {
+                'poliza_form': poliza_form,
+                'movimiento_formset': movimiento_formset,
+                'cuentas': cuentas,
+                'is_edit': True,
+                'titulo': 'Editar Póliza',
+            })
 
         # Validar formularios
         if poliza_form.is_valid() and movimiento_formset.is_valid():
@@ -252,35 +240,14 @@ class ActualizarPolizaView(LoginRequiredMixin, View):
                     debe = form.cleaned_data.get('debe', 0) or 0
                     haber = form.cleaned_data.get('haber', 0) or 0
                     if (debe and haber) or (not debe and not haber):
-                        messages.error(request, 'Debe ingresar un valor en Debe o en Haber, pero no en ambos ni dejar ambos vacíos.')
-                        return render(request, 'transacciones/registro_poliza.html', {
-                            'poliza_form': poliza_form,
-                            'movimiento_formset': movimiento_formset,
-                            'cuentas': cuentas,
-                            'is_edit': True,
-                            'titulo': 'Editar Póliza',
-                        })
+                        return render_error_response('Debe ingresar un valor en Debe o en Haber, pero no en ambos ni dejar ambos vacíos.')
                     
             # Verificar periodo contable
             periodo = poliza_form.cleaned_data.get('periodo')
             if not periodo:
-                messages.error(request, 'Debe seleccionar un periodo para la póliza.')
-                return render(request, 'transacciones/registro_poliza.html', {
-                    'poliza_form': poliza_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': True,
-                    'titulo': 'Editar Póliza',
-                })
+                return render_error_response('Debe seleccionar un periodo para la póliza.')
             elif periodo.estado != 'Abierto':
-                messages.error(request, 'El periodo contable está cerrado. No puede realizar operaciones.')
-                return render(request, 'transacciones/registro_poliza.html', {
-                    'poliza_form': poliza_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': True,
-                    'titulo': 'Editar Póliza',
-                })
+                return render_error_response('El periodo contable está cerrado. No puede realizar operaciones.')
             
             try:
                 with transaction.atomic():
@@ -338,15 +305,7 @@ class ActualizarPolizaView(LoginRequiredMixin, View):
             except Exception as e:
                 # Mostrar errores específicos en consola para depuración
                 print(f"Error al guardar: {str(e)}")
-                
-                messages.error(request, f'Error al guardar: {str(e)}')
-                return render(request, 'transacciones/registro_poliza.html', {
-                    'poliza_form': poliza_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': True,
-                    'titulo': 'Editar Póliza',
-                })
+                return render_error_response(f'Error al guardar: {str(e)}')
                 
         else:
             # Mostrar errores específicos en consola para depuración
@@ -356,17 +315,7 @@ class ActualizarPolizaView(LoginRequiredMixin, View):
             if not movimiento_formset.is_valid():
                 print("Errores en MovimientoFormSet:", movimiento_formset.errors)
             
-            messages.error(request, 'Por favor, corrige los errores en el formulario.')
-
-            return render(request, 'transacciones/registro_poliza.html', {
-                'poliza_form': poliza_form,
-                'movimiento_formset': movimiento_formset,
-                'cuentas': cuentas,
-                'is_edit': True,
-                'titulo': 'Editar Póliza',
-                'total_debe': sum(form.cleaned_data.get('debe', 0) or 0 for form in movimiento_formset if form.is_valid() and not form.cleaned_data.get('DELETE', False)),
-                'total_haber': sum(form.cleaned_data.get('haber', 0) or 0 for form in movimiento_formset if form.is_valid() and not form.cleaned_data.get('DELETE', False)),
-            })
+            return render_error_response('Por favor, corrige los errores en el formulario.')
 
 class EliminarPolizaView(LoginRequiredMixin, View):
     def post(self, request, pk, *args, **kwargs):

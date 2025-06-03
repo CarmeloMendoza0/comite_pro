@@ -114,7 +114,7 @@ class DocComprobanteListView(LoginRequiredMixin, generic.ListView):
 class RegistroDocComprobanteView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         comprobante_form = DocComprobanteForm()
-        transaccion_form = TransaccionForm()
+        transaccion_form = TransaccionForm(is_edit=False)
         movimiento_formset = MovimientoFormSet()
         cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo') # Solo cuentas de nivel 3
 
@@ -124,17 +124,31 @@ class RegistroDocComprobanteView(LoginRequiredMixin, View):
             'movimiento_formset': movimiento_formset,
             'cuentas': cuentas,
             'is_edit': False,
-            'titulo': 'Registrar Comprobante',
+            'titulo': 'Registrar Comprobante', #'tipo_movimiento_previo': None,
         })
     
     def post(self, request, *args, **kwargs):
         comprobante_form = DocComprobanteForm(request.POST)
-        transaccion_form = TransaccionForm(request.POST)
+        transaccion_form = TransaccionForm(request.POST, is_edit=False)
         movimiento_formset = MovimientoFormSet(request.POST)
         cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Solo cuentas de nivel 3 (nivel=3)
 
         # Obtener el tipo de movimiento del formulario
         tipo_movimiento = request.POST.get('tipo_movimiento')
+
+        # Definir función helper para renderizar en caso de error
+        def render_error_response(error_message=None):
+            if error_message:
+                messages.error(request, error_message)
+            return render(request, 'documentos/doccomprobante_form.html', {
+                'comprobante_form': comprobante_form,
+                'transaccion_form': transaccion_form,
+                'movimiento_formset': movimiento_formset,
+                'cuentas': cuentas,
+                'is_edit': False,
+                'titulo': 'Registrar Comprobante',
+                'tipo_movimiento_previo': tipo_movimiento,  # Pasar el tipo seleccionado
+            })
 
         # Validar los formularios
         if comprobante_form.is_valid() and transaccion_form.is_valid() and movimiento_formset.is_valid():
@@ -144,38 +158,14 @@ class RegistroDocComprobanteView(LoginRequiredMixin, View):
                     debe = form.cleaned_data.get('debe', 0) or 0
                     haber = form.cleaned_data.get('haber', 0) or 0
                     if (debe and haber) or (not debe and not haber):
-                        messages.error(request, 'Debe ingresar un valor en Debe o en Haber, pero no en ambos.')
-                        return render(request, 'documentos/doccomprobante_form.html', {
-                            'comprobante_form': comprobante_form,
-                            'transaccion_form': transaccion_form,
-                            'movimiento_formset': movimiento_formset,
-                            'cuentas': cuentas,
-                            'is_edit': False,
-                            'titulo': 'Registrar Comprobante',
-                        })
-        
+                        return render_error_response('Debe ingresar un valor en Debe o en Haber, pero no en ambos.')
+                        
             # Validar que el periodo contable esté abierto
             periodo = transaccion_form.cleaned_data.get('periodo')
             if not periodo:
-                messages.error(request, 'Debe seleccionar un periodo para la transacción.')
-                return render(request, 'documentos/doccomprobante_form.html', {
-                    'comprobante_form': comprobante_form,
-                    'transaccion_form': transaccion_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': False,
-                    'titulo': 'Registrar Comprobante',
-                })
+                return render_error_response('Debe seleccionar un periodo para la transacción.')
             elif periodo.estado != 'Abierto':
-                messages.error(request, 'El periodo contable está cerrado. No puede realizar operaciones.')
-                return render(request, 'documentos/doccomprobante_form.html', {
-                    'comprobante_form': comprobante_form,
-                    'transaccion_form': transaccion_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': False,
-                    'titulo': 'Registrar Comprobante',
-                })
+                return render_error_response('No puede realizar operaciones.')
             
             try:
                 with transaction.atomic():
@@ -247,26 +237,10 @@ class RegistroDocComprobanteView(LoginRequiredMixin, View):
                 return redirect('doccomprobante_list')
             
             except Exception as e:
-                    messages.error(request, f'Error al guardar: {str(e)}')
-                    return render(request, 'documentos/doccomprobante_form.html', {
-                        'comprobante_form': comprobante_form,
-                        'transaccion_form': transaccion_form,
-                        'movimiento_formset': movimiento_formset,
-                        'cuentas': cuentas,
-                        'is_edit': False,
-                        'titulo': 'Registrar Comprobante',
-                    })
+                    return render_error_response(f'Error al guardar: {str(e)}')
         else:
-            messages.error(request, 'Por favor, corrige los errores en el formulario.')
-            return render(request, 'documentos/doccomprobante_form.html', {
-                'comprobante_form': comprobante_form,
-                'transaccion_form': transaccion_form,
-                'movimiento_formset': movimiento_formset,
-                'cuentas': cuentas,
-                'is_edit': False,
-                'titulo': 'Registrar Comprobante',
-            })
-
+            return render_error_response('Por favor, corrige los errores en el formulario.')
+        
 class EditarDocComprobanteView(LoginRequiredMixin, View):
     def get(self, request, pk, *args, **kwargs):
         # Obtener el comprobante existente
@@ -278,6 +252,8 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
         if not transaccion:
             messages.error(request, 'No se encontró una transacción asociada a este comprobante.')
             return redirect('doccomprobante_list')
+        # Pasar is_edit=True a los formularios
+        #transaccion_form = TransaccionForm(instance=transaccion, is_edit=True)
         
         # Preparar datos iniciales para formularios
         initial_data = {
@@ -288,7 +264,8 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
         comprobante_form = DocComprobanteForm(instance=comprobante, initial=initial_data)
         transaccion_form = TransaccionForm(
             instance=transaccion, 
-            initial={'fecha': transaccion.fecha.strftime('%Y-%m-%d') if transaccion.fecha else None}
+            initial={'fecha': transaccion.fecha.strftime('%Y-%m-%d') if transaccion.fecha else None},
+            is_edit=True
         )
         movimiento_formset = MovimientoFormSet(instance=transaccion)
 
@@ -300,6 +277,13 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
         total_debe = sum(mov.debe or 0 for mov in movimientos)
         total_haber = sum(mov.haber or 0 for mov in movimientos)
 
+        # Determinar el tipo de movimiento basado en la transacción existente
+        tipo_movimiento_actual = None
+        if transaccion.tipo_transaccion == 'Ingreso':
+            tipo_movimiento_actual = 'ingreso'
+        elif transaccion.tipo_transaccion == 'Egreso':
+            tipo_movimiento_actual = 'egreso'
+
         return render(request, 'documentos/doccomprobante_form.html', {
             'comprobante_form': comprobante_form,
             'transaccion_form': transaccion_form,
@@ -309,6 +293,7 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
             'titulo': 'Editar Comprobante',
             'total_debe': total_debe,
             'total_haber': total_haber,
+            'tipo_movimiento_previo': tipo_movimiento_actual,  # Pasar el tipo actual
         })
     
     def post(self, request, pk, *args, **kwargs):
@@ -322,7 +307,7 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
         
         # Inicializar formularios con datos del POST e instancias existentes
         comprobante_form = DocComprobanteForm(request.POST, instance=comprobante)
-        transaccion_form = TransaccionForm(request.POST, instance=transaccion)
+        transaccion_form = TransaccionForm(request.POST, instance=transaccion, is_edit=True)
         movimiento_formset = MovimientoFormSet(request.POST, instance=transaccion)
 
         cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Solo cuentas de nivel 3 (nivel=3)
@@ -330,47 +315,36 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
         # Obtener el tipo de movimiento del formulario
         tipo_movimiento = request.POST.get('tipo_movimiento')
 
+        # Función helper para renderizar en caso de error
+        def render_error_response(error_message=None):
+            if error_message:
+                messages.error(request, error_message)
+            return render(request, 'documentos/doccomprobante_form.html', {
+                'comprobante_form': comprobante_form,
+                'transaccion_form': transaccion_form,
+                'movimiento_formset': movimiento_formset,
+                'cuentas': cuentas,
+                'is_edit': True,
+                'titulo': 'Editar Comprobante',
+                'tipo_movimiento_previo': tipo_movimiento,  # Preservar el tipo seleccionado
+            })
+
         # Validar formularios
         if comprobante_form.is_valid() and transaccion_form.is_valid() and movimiento_formset.is_valid():
-            # Validaciones adicionales antes de la transacción
             # Verificar debe/haber
             for form in movimiento_formset:
                 if form.is_valid() and not form.cleaned_data.get('DELETE', False):
                     debe = form.cleaned_data.get('debe', 0) or 0
                     haber = form.cleaned_data.get('haber', 0) or 0
                     if (debe and haber) or (not debe and not haber):
-                        messages.error(request, 'Debe ingresar un valor en Debe o en Haber, pero no en ambos.')
-                        return render(request, 'documentos/doccomprobante_form.html', {
-                            'comprobante_form': comprobante_form,
-                            'transaccion_form': transaccion_form,
-                            'movimiento_formset': movimiento_formset,
-                            'cuentas': cuentas,
-                            'is_edit': True,
-                            'titulo': 'Editar Comprobante',
-                        })
+                        return render_error_response('Debe ingresar un valor en Debe o en Haber, pero no en ambos.')
                     
             # Verificar periodo contable
             periodo = transaccion_form.cleaned_data.get('periodo')
             if not periodo:
-                messages.error(request, 'Debe seleccionar un periodo para la transacción.')
-                return render(request, 'documentos/doccomprobante_form.html', {
-                    'comprobante_form': comprobante_form,
-                    'transaccion_form': transaccion_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': True,
-                    'titulo': 'Editar Comprobante',
-                })
+                return render_error_response('Debe seleccionar un periodo para la transacción.')
             elif periodo.estado != 'Abierto':
-                messages.error(request, 'El periodo contable está cerrado. No puede realizar operaciones.')
-                return render(request, 'documentos/doccomprobante_form.html', {
-                    'comprobante_form': comprobante_form,
-                    'transaccion_form': transaccion_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': True,
-                    'titulo': 'Editar Comprobante',
-                })
+                return render_error_response('No puede realizar operaciones.')
             
             try:
                 with transaction.atomic():
@@ -444,18 +418,8 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
                 return redirect('doccomprobante_list')
             
             except Exception as e:
-                # Mostrar errores específicos en consola para depuración
-                print(f"Error al guardar: {str(e)}")
-                
-                messages.error(request, f'Error al guardar: {str(e)}')
-                return render(request, 'documentos/doccomprobante_form.html', {
-                    'comprobante_form': comprobante_form,
-                    'transaccion_form': transaccion_form,
-                    'movimiento_formset': movimiento_formset,
-                    'cuentas': cuentas,
-                    'is_edit': True,
-                    'titulo': 'Editar Comprobante',
-                })
+                print(f"Error al guardar: {str(e)}") # Mostrar errores específicos en consola para depuración
+                return render_error_response(f'Error al guardar: {str(e)}')
                 
         else:
             # Mostrar errores específicos en consola para depuración
@@ -468,16 +432,7 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
             if not movimiento_formset.is_valid():
                 print("Errores en MovimientoFormSet:", movimiento_formset.errors)
             
-            messages.error(request, 'Por favor, corrige los errores en el formulario.')
-
-            return render(request, 'documentos/doccomprobante_form.html', {
-                'comprobante_form': comprobante_form,
-                'transaccion_form': transaccion_form,
-                'movimiento_formset': movimiento_formset,
-                'cuentas': cuentas,
-                'is_edit': True,
-                'titulo': 'Editar Comprobante',
-            })
+            return render_error_response('Por favor, corrige los errores en el formulario.')
 
 class EliminarDocComprobanteView(LoginRequiredMixin, View):
     def post(self, request, pk, *args, **kwargs):
