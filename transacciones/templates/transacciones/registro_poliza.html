@@ -94,22 +94,26 @@
                                 <td class="px-4 py-3 border-r">
                                     <div class="w-full">
                                         <select name="{{ form.cuenta.html_name }}" id="{{ form.cuenta.auto_id }}" class="form-select w-full">
+                                            <option value="">Seleccione una cuenta</option>
                                             {% for cuenta in cuentas %}
-                                                <option value="{{ cuenta.id }}" {% if form.cuenta.value|stringformat:"i" == cuenta.id|stringformat:"i" %}selected{% endif %}>
+                                                {% with selected_cuenta=form.cuenta.value|default:form.initial.cuenta %}
+                                                <option value="{{ cuenta.id }}" 
+                                                    {% if selected_cuenta|add:"0" == cuenta.id %}selected{% endif %}>
                                                     {{ cuenta.codigo }} - {{ cuenta.nombre }}
                                                 </option>
+                                                {% endwith %}
                                             {% endfor %}
                                         </select>
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-right border-r">
                                     <div class="flex justify-end">
-                                        <input type="number" name="{{ form.debe.html_name }}" id="{{ form.debe.auto_id }}" step="0.01" min="0" class="form-input text-right w-full numeric-input" value="{{ form.debe.value|default:'0'|floatformat:2 }}">
+                                        <input type="number" name="{{ form.debe.html_name }}" id="{{ form.debe.auto_id }}" step="0.01" min="0" class="form-input text-right w-full numeric-input" value="{{ form.debe.value|default:form.initial.debe|default:'0.00' }}">
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-right border-r">
                                     <div class="flex justify-end">
-                                        <input type="number" name="{{ form.haber.html_name }}" id="{{ form.haber.auto_id }}" step="0.01" min="0" class="form-input text-right w-full numeric-input" value="{{ form.haber.value|default:'0'|floatformat:2 }}">
+                                        <input type="number" name="{{ form.haber.html_name }}" id="{{ form.haber.auto_id }}" step="0.01" min="0" class="form-input text-right w-full numeric-input" value="{{ form.haber.value|default:form.initial.haber|default:'0.00' }}">
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-center">
@@ -126,7 +130,7 @@
                                 <td colspan="1" class="px-4 py-2 text-right">Ajuste contable:</td>
                                 <td colspan="2" class="px-4 py-2 font-semibold text-right">
                                     <span id="balance-diff" class="{% if total_debe == total_haber %}text-green-500{% else %}text-red-500{% endif %}">
-                                        0.00
+                                        {% if preserve_formset_data %}{{ balance_diff|floatformat:2 }}{% else %}0.00{% endif %}
                                     </span>
                                 </td>
                                 <td class="px-4 py-2"></td>
@@ -169,6 +173,7 @@
                 <td class="px-4 py-3 border-r">
                     <div class="w-full">
                         <select name="movimientos-__prefix__-cuenta" id="id_movimientos-__prefix__-cuenta" class="form-select w-full">
+                            <option value="">Seleccione una cuenta</option>
                             {% for cuenta in cuentas %}
                                 <option value="{{ cuenta.id }}">{{ cuenta.codigo }} - {{ cuenta.nombre }}</option>
                             {% endfor %}
@@ -201,10 +206,12 @@
 <!-- Scripts -->
 {% block extra_js %}
 <script>
-    // Función para formatear números a 2 decimales
+    // Función para formatear números a 2 decimales (siempre con punto decimal)
     function formatNumberInput(input) {
         var value = input.value;
         if (value !== undefined && value !== null && value !== '') {
+            // Reemplazar coma por punto para normalizar formato
+            value = value.toString().replace(',', '.');
             var numValue = parseFloat(value);
             if (!isNaN(numValue)) {
                 input.value = numValue.toFixed(2);
@@ -215,6 +222,13 @@
         } else {
             input.value = '0.00';  // Valor por defecto si está vacío
         }
+    }
+
+    // Función para normalizar valores numéricos (convertir comas a puntos)
+    function normalizeNumericValue(value) {
+        if (!value) return 0;
+        // Convertir a string y reemplazar coma por punto
+        return parseFloat(value.toString().replace(',', '.')) || 0;
     }
 
     // Función para formatear todos los campos numéricos
@@ -243,6 +257,33 @@
                 {% endif %}
             {% endfor %}
         {% endif %}
+
+        {% if preserve_formset_data %}
+            // Preservar datos del formset cuando hay errores de validación
+            console.log('Preservando datos del formset después de error de validación');
+            
+            // Normalizar todos los campos numéricos que pueden tener comas
+            $('input[name$="-debe"], input[name$="-haber"]').each(function() {
+                var currentValue = $(this).val();
+                if (currentValue && currentValue !== '0.00') {
+                    // Normalizar formato (coma a punto) y formatear
+                    var normalizedValue = normalizeNumericValue(currentValue);
+                    $(this).val(normalizedValue.toFixed(2));
+                }
+            });
+            
+            // Los datos ya están preservados por Django en los campos del formulario
+            // Solo necesitamos actualizar los totales y el estado visual
+            updateTotals();
+            
+            // Cambiar automáticamente a la pestaña de cuentas si hay datos
+            var hasMovements = $('tr.movimiento-form').length > 0;
+            if (hasMovements) {
+                // Activar pestaña de cuentas
+                $('.tab-button[data-tab="cuentas"]').click();
+            }
+        {% endif %}
+        
         // Formatear todos los campos numéricos al iniciar
         formatAllNumericInputs();
         updateTotals();
@@ -298,26 +339,30 @@
 
     // Para evitar el problema de debe/haber en un mismo movimiento
     $(document).on('input', 'input[name$="-debe"]', function() {
-        if (parseFloat($(this).val()) > 0) {
+        var value = normalizeNumericValue($(this).val());
+        if (value > 0) {
             $(this).closest('tr').find('input[name$="-haber"]').val('0.00');
         }
     });
 
     $(document).on('input', 'input[name$="-haber"]', function() {
-        if (parseFloat($(this).val()) > 0) {
+        var value = normalizeNumericValue($(this).val());
+        if (value > 0) {
             $(this).closest('tr').find('input[name$="-debe"]').val('0.00');
         }
     });
 
     // Para los inputs del formulario de agregar movimiento
     $('#id_debe_seleccionado').on('input', function() {
-        if (parseFloat($(this).val()) > 0) {
+        var value = normalizeNumericValue($(this).val());
+        if (value > 0) {
             $('#id_haber_seleccionado').val('0.00');
         }
     });
 
     $('#id_haber_seleccionado').on('input', function() {
-        if (parseFloat($(this).val()) > 0) {
+        var value = normalizeNumericValue($(this).val());
+        if (value > 0) {
             $('#id_debe_seleccionado').val('0.00');
         }
     });
@@ -414,8 +459,8 @@
             var isDeleted = $(this).find('input[type="checkbox"][name$="-DELETE"]').is(':checked');
             
             if (!isDeleted) {
-                var debe = parseFloat($(this).find('input[name$="-debe"]').val()) || 0;
-                var haber = parseFloat($(this).find('input[name$="-haber"]').val()) || 0;
+                var debe = normalizeNumericValue($(this).find('input[name$="-debe"]').val());
+                var haber = normalizeNumericValue($(this).find('input[name$="-haber"]').val());
                 
                 totalDebe += debe;
                 totalHaber += haber;

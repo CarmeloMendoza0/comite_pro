@@ -64,10 +64,53 @@ class RegistroDocumentoBancoView(LoginRequiredMixin, View):
         # Obtener el tipo de movimiento del formulario
         tipo_movimiento = request.POST.get('tipo_movimiento')
 
-        # Definir función helper para renderizar en caso de error
+        # Definir función helper para renderizar en caso de error con preservación de datos
         def render_error_response(error_message=None):
             if error_message:
                 messages.error(request, error_message)
+            
+            # Calcular totales para mostrar en caso de error
+            total_debe = 0
+            total_haber = 0
+            
+            # CRITICAL FIX: Normalizar valores para que el template los muestre correctamente
+            for form in movimiento_formset:
+                if form.is_valid() and not form.cleaned_data.get('DELETE', False):
+                    debe = form.cleaned_data.get('debe', 0) or 0
+                    haber = form.cleaned_data.get('haber', 0) or 0
+                    total_debe += float(debe)
+                    total_haber += float(haber)
+                
+                # NORMALIZACIÓN: Preservar todos los valores del formulario correctamente
+                if hasattr(form, 'data') and form.data:
+                    # Preservar cuenta seleccionada
+                    cuenta_field = f"{form.prefix}-cuenta"
+                    if cuenta_field in form.data:
+                        # Asegurar que la cuenta se preserve en initial
+                        form.initial = form.initial or {}
+                        form.initial['cuenta'] = form.data[cuenta_field]
+                    
+                    # Preservar y normalizar valores numéricos
+                    debe_field = f"{form.prefix}-debe"
+                    haber_field = f"{form.prefix}-haber"
+                    
+                    if debe_field in form.data:
+                        try:
+                            debe_normalized = f"{float(str(form.data[debe_field]).replace(',', '.')):.2f}"
+                            form.initial['debe'] = debe_normalized
+                        except (ValueError, TypeError):
+                            form.initial['debe'] = "0.00"
+                    
+                    if haber_field in form.data:
+                        try:
+                            haber_normalized = f"{float(str(form.data[haber_field]).replace(',', '.')):.2f}"
+                            form.initial['haber'] = haber_normalized
+                        except (ValueError, TypeError):
+                            form.initial['haber'] = "0.00"
+            
+            # Calcular diferencia (ajuste contable)
+            balance_diff = round(total_debe - total_haber, 2)
+            
             return render(request, 'bancos/documentobanco_form.html', {
                 'documento_form': documento_form,
                 'transaccion_form': transaccion_form,
@@ -76,6 +119,10 @@ class RegistroDocumentoBancoView(LoginRequiredMixin, View):
                 'is_edit': False,
                 'titulo': 'Registrar Documento Bancario',
                 'tipo_movimiento_previo': tipo_movimiento,  # Pasar el tipo seleccionado
+                'total_debe': total_debe,
+                'total_haber': total_haber,
+                'balance_diff': balance_diff,
+                'preserve_formset_data': True,  # Flag para JavaScript
             })
 
         # Validar los formularios
@@ -183,6 +230,7 @@ class RegistroDocumentoBancoView(LoginRequiredMixin, View):
 
             return render_error_response('Por favor, corrige los errores en el formulario.')
 
+
 class DocumentoBancoListView(LoginRequiredMixin, generic.ListView):
     model = DocumentoBanco
     template_name = 'bancos/documentobanco_list.html'
@@ -282,10 +330,53 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
         # Obtener el tipo de movimiento del formulario
         tipo_movimiento = request.POST.get('tipo_movimiento')   
 
-        # Función helper para renderizar en caso de error
+        # Función helper para renderizar en caso de error con preservación de datos
         def render_error_response(error_message=None):
             if error_message:
                 messages.error(request, error_message)
+            
+            # Calcular totales para mostrar en caso de error
+            total_debe = 0
+            total_haber = 0
+            
+            # CRITICAL FIX: Normalizar valores para que el template los muestre correctamente
+            for form in movimiento_formset:
+                if form.is_valid() and not form.cleaned_data.get('DELETE', False):
+                    debe = form.cleaned_data.get('debe', 0) or 0
+                    haber = form.cleaned_data.get('haber', 0) or 0
+                    total_debe += float(debe)
+                    total_haber += float(haber)
+                
+                # NORMALIZACIÓN: Preservar todos los valores del formulario correctamente
+                if hasattr(form, 'data') and form.data:
+                    # Preservar cuenta seleccionada
+                    cuenta_field = f"{form.prefix}-cuenta"
+                    if cuenta_field in form.data:
+                        # Asegurar que la cuenta se preserve en initial
+                        form.initial = form.initial or {}
+                        form.initial['cuenta'] = form.data[cuenta_field]
+                    
+                    # Preservar y normalizar valores numéricos
+                    debe_field = f"{form.prefix}-debe"
+                    haber_field = f"{form.prefix}-haber"
+                    
+                    if debe_field in form.data:
+                        try:
+                            debe_normalized = f"{float(str(form.data[debe_field]).replace(',', '.')):.2f}"
+                            form.initial['debe'] = debe_normalized
+                        except (ValueError, TypeError):
+                            form.initial['debe'] = "0.00"
+                    
+                    if haber_field in form.data:
+                        try:
+                            haber_normalized = f"{float(str(form.data[haber_field]).replace(',', '.')):.2f}"
+                            form.initial['haber'] = haber_normalized
+                        except (ValueError, TypeError):
+                            form.initial['haber'] = "0.00"
+            
+            # Calcular diferencia (ajuste contable)
+            balance_diff = round(total_debe - total_haber, 2)
+            
             return render(request, 'bancos/documentobanco_form.html', {
                 'documento_form': documento_form,
                 'transaccion_form': transaccion_form,
@@ -294,6 +385,10 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
                 'is_edit': True,
                 'titulo': 'Editar Documento Bancario',
                 'tipo_movimiento_previo': tipo_movimiento,  # Preservar el tipo seleccionado
+                'total_debe': total_debe,
+                'total_haber': total_haber,
+                'balance_diff': balance_diff,
+                'preserve_formset_data': True,  # Flag para JavaScript
             })
 
         # Validar formularios
@@ -401,10 +496,7 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
             if not movimiento_formset.is_valid():
                 print("Errores en MovimientoFormSet:", movimiento_formset.errors)
             
-            messages.error(request, 'Por favor, corrige los errores en el formulario.')
-
-            return render_error_response('Por favor, corrige los errores en el formulario.') 
-    
+            return render_error_response('Por favor, corrige los errores en el formulario.')
 
 class EliminarDocumentoBancoView(LoginRequiredMixin, View):
     def post(self, request, pk, *args, **kwargs):

@@ -39,9 +39,9 @@ def verificar_credencial_admin(request):
 
 class RegistrarPolizaView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
-        poliza_form = PolizaForm(initial={'tipo_operacion': 'Póliza'}, is_edit=False)
+        poliza_form = PolizaForm(initial={'tipo_operacion': 'Póliza'}, is_edit=False)  # Pasar is_edit=False
         movimiento_formset = MovimientoFormSet()
-        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Todas las cuentas disponibles
+        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')
         
         return render(request, 'transacciones/registro_poliza.html', {
             'poliza_form': poliza_form,
@@ -52,22 +52,69 @@ class RegistrarPolizaView(LoginRequiredMixin, View):
         })
 
     def post(self, request, *args, **kwargs):
-        poliza_form = PolizaForm(request.POST, is_edit=False)
+        poliza_form = PolizaForm(request.POST, is_edit=False)  # Pasar is_edit=False
         movimiento_formset = MovimientoFormSet(request.POST)
-        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Todas las cuentas disponibles
+        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')
 
         # Definir función helper para renderizar en caso de error
         def render_error_response(error_message=None):
             if error_message:
                 messages.error(request, error_message)
+            
+            # Calcular totales para mostrar en caso de error
+            total_debe = 0
+            total_haber = 0
+            
+            # CRITICAL FIX: Normalizar valores para que el template los muestre correctamente
+            for form in movimiento_formset:
+                if form.is_valid() and not form.cleaned_data.get('DELETE', False):
+                    debe = form.cleaned_data.get('debe', 0) or 0
+                    haber = form.cleaned_data.get('haber', 0) or 0
+                    total_debe += float(debe)
+                    total_haber += float(haber)
+                
+                # NORMALIZACIÓN: Preservar todos los valores del formulario correctamente
+                if hasattr(form, 'data') and form.data:
+                    # Preservar cuenta seleccionada
+                    cuenta_field = f"{form.prefix}-cuenta"
+                    if cuenta_field in form.data:
+                        # Asegurar que la cuenta se preserve en initial
+                        form.initial = form.initial or {}
+                        form.initial['cuenta'] = form.data[cuenta_field]
+                    
+                    # Preservar y normalizar valores numéricos
+                    debe_field = f"{form.prefix}-debe"
+                    haber_field = f"{form.prefix}-haber"
+                    
+                    if debe_field in form.data:
+                        try:
+                            debe_normalized = f"{float(str(form.data[debe_field]).replace(',', '.')):.2f}"
+                            form.initial['debe'] = debe_normalized
+                        except (ValueError, TypeError):
+                            form.initial['debe'] = "0.00"
+                    
+                    if haber_field in form.data:
+                        try:
+                            haber_normalized = f"{float(str(form.data[haber_field]).replace(',', '.')):.2f}"
+                            form.initial['haber'] = haber_normalized
+                        except (ValueError, TypeError):
+                            form.initial['haber'] = "0.00"
+            
+            # Calcular diferencia (ajuste contable)
+            balance_diff = round(total_debe - total_haber, 2)
+            
             return render(request, 'transacciones/registro_poliza.html', {
                 'poliza_form': poliza_form,
                 'movimiento_formset': movimiento_formset,
                 'cuentas': cuentas,
                 'is_edit': False,
                 'titulo': 'Registrar Póliza',
+                'total_debe': total_debe,
+                'total_haber': total_haber,
+                'balance_diff': balance_diff,
+                'preserve_formset_data': True,  # Flag para JavaScript
             })
-        
+
         # Validar los formularios
         if poliza_form.is_valid() and movimiento_formset.is_valid():
             # Validar que los movimientos tengan valores correctos de Debe y Haber
@@ -83,7 +130,7 @@ class RegistrarPolizaView(LoginRequiredMixin, View):
             if not periodo:
                 return render_error_response('Debe seleccionar un periodo contable.')
             elif periodo.estado != 'Abierto':
-                return render_error_response('No puede realizar operaciones.')
+                return render_error_response('El periodo contable está cerrado. No puede realizar operaciones.')
             
             try:
                 with transaction.atomic():
@@ -135,8 +182,6 @@ class RegistrarPolizaView(LoginRequiredMixin, View):
                 return redirect('poliza_list')
             
             except Exception as e:
-                # Capturar errores detallados para depuración
-                print(f"Error al guardar: {str(e)}")
                 return render_error_response(f'Error al guardar: {str(e)}')
         else:
             # Mostrar errores específicos en consola para depuración
@@ -147,7 +192,7 @@ class RegistrarPolizaView(LoginRequiredMixin, View):
                 print("Errores en MovimientoFormSet:", movimiento_formset.errors)
                 
             return render_error_response('Por favor, corrige los errores en el formulario.')
-        
+
 class PolizaListView(LoginRequiredMixin, generic.ListView):
     model = Transaccion
     template_name = 'transacciones/poliza_list.html'
@@ -189,7 +234,7 @@ class ActualizarPolizaView(LoginRequiredMixin, View):
         }
 
         # Inicializar formularios con instancias existentes
-        poliza_form = PolizaForm(instance=poliza, initial=initial_data,  is_edit=True)
+        poliza_form = PolizaForm(instance=poliza, initial=initial_data, is_edit=True)  # Pasar is_edit=True
         movimiento_formset = MovimientoFormSet(instance=poliza)
 
         # Obtener lista de cuentas disponibles (todas las cuentas)
@@ -215,7 +260,7 @@ class ActualizarPolizaView(LoginRequiredMixin, View):
         poliza = get_object_or_404(Transaccion, pk=pk, tipo_operacion='Póliza')
         
         # Inicializar formularios con datos del POST e instancias existentes
-        poliza_form = PolizaForm(request.POST, instance=poliza, is_edit=True)
+        poliza_form = PolizaForm(request.POST, instance=poliza, is_edit=True)  # Pasar is_edit=True
         movimiento_formset = MovimientoFormSet(request.POST, instance=poliza)
         cuentas = Cuenta.objects.all()
 
@@ -223,12 +268,30 @@ class ActualizarPolizaView(LoginRequiredMixin, View):
         def render_error_response(error_message=None):
             if error_message:
                 messages.error(request, error_message)
+            
+            # Calcular totales para mostrar en caso de error
+            total_debe = 0
+            total_haber = 0
+            for form in movimiento_formset:
+                if form.is_valid() and not form.cleaned_data.get('DELETE', False):
+                    debe = form.cleaned_data.get('debe', 0) or 0
+                    haber = form.cleaned_data.get('haber', 0) or 0
+                    total_debe += float(debe)
+                    total_haber += float(haber)
+                    
+            # Calcular diferencia (ajuste contable)
+            balance_diff = round(total_debe - total_haber, 2)
+                    
             return render(request, 'transacciones/registro_poliza.html', {
                 'poliza_form': poliza_form,
                 'movimiento_formset': movimiento_formset,
                 'cuentas': cuentas,
                 'is_edit': True,
                 'titulo': 'Editar Póliza',
+                'total_debe': total_debe,
+                'total_haber': total_haber,
+                'balance_diff': balance_diff,
+                'preserve_formset_data': True,  # Flag para JavaScript
             })
 
         # Validar formularios
@@ -303,8 +366,6 @@ class ActualizarPolizaView(LoginRequiredMixin, View):
                 return redirect('poliza_list')
             
             except Exception as e:
-                # Mostrar errores específicos en consola para depuración
-                print(f"Error al guardar: {str(e)}")
                 return render_error_response(f'Error al guardar: {str(e)}')
                 
         else:

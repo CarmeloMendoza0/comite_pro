@@ -138,39 +138,40 @@
 
             <!-- Tab 3: Cuentas Contables -->
             <div id="tab-cuentas" class="tab-content hidden">
+                {{ movimiento_formset.management_form }}
+                
                 <!-- Formulario para agregar un nuevo movimiento -->
-                <h2 class="text-xl font-semibold mt-4 mb-2">Agregar Movimiento</h2>
-                <div class="flex space-x-4">
-                    <div>
+                <h2 class="text-xl font-semibold mb-4">Agregar Movimiento</h2>
+                <div class="flex flex-wrap space-x-4">
+                    <div class="flex-grow">
                         <label for="id_cuenta_seleccionada">Cuenta:</label>
-                        <select id="id_cuenta_seleccionada" class="block w-full mt-1">
+                        <select id="id_cuenta_seleccionada" class="form-select block w-full mt-1">
                             <option value="">Seleccione una cuenta</option>
                             {% for cuenta in cuentas %}
                             <option value="{{ cuenta.id }}">{{ cuenta.codigo }} - {{ cuenta.nombre }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div>
+                    <div class="w-1/6">
                         <label for="id_debe_seleccionado">Debe:</label>
-                        <input type="number" id="id_debe_seleccionado" step="0.01" class="form-input block w-full mt-1 numeric-input" />
+                        <input type="number" id="id_debe_seleccionado" step="0.01" min="0" class="form-input block w-full mt-1 numeric-input" />
                     </div>
-                    <div>
+                    <div class="w-1/6">
                         <label for="id_haber_seleccionado">Haber:</label>
-                        <input type="number" id="id_haber_seleccionado" step="0.01" class="form-input block w-full mt-1 numeric-input" />
+                        <input type="number" id="id_haber_seleccionado" step="0.01" min="0" class="form-input block w-full mt-1 numeric-input" />
                     </div>
-                    <div>
-                        <button type="button" id="add-movement" class="bg-blue-500 text-white py-2 px-4 rounded-lg mt-6">Agregar</button>
+                    <div class="flex items-end pb-1">
+                        <button type="button" id="add-movement" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">Agregar</button>
                     </div>
                 </div>
                 
-                <!-- Gestión del formset de movimientos -->
-                <h2 class="text-xl font-semibold mt-4 mb-2">Asiento Contable</h2>
-                {{ movimiento_formset.management_form }}
+                <!-- Tabla de movimientos -->
+                <h2 class="text-xl font-semibold mt-6 mb-2">Asiento Contable</h2>
                 <div class="overflow-x-auto">
                     <table class="min-w-full bg-white border border-gray-300">
                         <thead>
-                            <tr>
-                                <th class="px-4 py-2 w-2/4">Cuenta</th>
+                            <tr class="bg-gray-50">
+                                <th class="px-4 py-2 w-2/4 text-left">Cuenta</th>
                                 <th class="px-4 py-2 w-1/6 text-center">Debe</th>
                                 <th class="px-4 py-2 w-1/6 text-center">Haber</th>
                                 <th class="px-4 py-2 w-1/12 text-center">Eliminar</th>
@@ -179,26 +180,30 @@
                         <tbody id="movimientos-table-body" class="divide-y divide-gray-200">
                             {% for form in movimiento_formset.forms %}
                             <tr class="movimiento-form hover:bg-gray-50 transition-colors">
-                                {{form.id}}
+                                {{ form.id }} <!-- Campo 'id' como un campo oculto -->
                                 <td class="px-4 py-3 border-r">
                                     <div class="w-full">
                                         <select name="{{ form.cuenta.html_name }}" id="{{ form.cuenta.auto_id }}" class="form-select w-full">
+                                            <option value="">Seleccione una cuenta</option>
                                             {% for cuenta in cuentas %}
-                                                <option value="{{ cuenta.id }}" {% if form.cuenta.value|stringformat:"i" == cuenta.id|stringformat:"i" %}selected{% endif %}>
-                                                    {{ cuenta.nombre }}
+                                                {% with selected_cuenta=form.cuenta.value|default:form.initial.cuenta %}
+                                                <option value="{{ cuenta.id }}" 
+                                                    {% if selected_cuenta|add:"0" == cuenta.id %}selected{% endif %}>
+                                                    {{ cuenta.codigo }} - {{ cuenta.nombre }}
                                                 </option>
+                                                {% endwith %}
                                             {% endfor %}
                                         </select>
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-right border-r">
                                     <div class="flex justify-end">
-                                        <input type="number" name="{{ form.debe.html_name }}" id="{{ form.debe.auto_id }}" step="0.01" min="0" class="form-input text-right w-full numeric-input" value="{{ form.debe.value|default:'0'|floatformat:2 }}">
+                                        <input type="number" name="{{ form.debe.html_name }}" id="{{ form.debe.auto_id }}" step="0.01" min="0" class="form-input text-right w-full numeric-input" value="{{ form.debe.value|default:form.initial.debe|default:'0.00' }}">
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-right border-r">
                                     <div class="flex justify-end">
-                                        <input type="number" name="{{ form.haber.html_name }}" id="{{ form.haber.auto_id }}" step="0.01" min="0" class="form-input text-right w-full numeric-input" value="{{ form.haber.value|default:'0'|floatformat:2 }}">
+                                        <input type="number" name="{{ form.haber.html_name }}" id="{{ form.haber.auto_id }}" step="0.01" min="0" class="form-input text-right w-full numeric-input" value="{{ form.haber.value|default:form.initial.haber|default:'0.00' }}">
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-center">
@@ -215,7 +220,7 @@
                                 <td colspan="1" class="px-4 py-2 text-right">Ajuste contable:</td>
                                 <td colspan="2" class="px-4 py-2 font-semibold text-right">
                                     <span id="balance-diff" class="{% if total_debe == total_haber %}text-green-500{% else %}text-red-500{% endif %}">
-                                        0.00
+                                        {% if preserve_formset_data %}{{ balance_diff|floatformat:2 }}{% else %}0.00{% endif %}
                                     </span>
                                 </td>
                                 <td class="px-4 py-2"></td>
@@ -232,21 +237,30 @@
                             </tr>
                             <tr id="balance-error" class="{% if total_debe == total_haber %}hidden{% endif %} text-red-500">
                                 <td colspan="4" class="px-4 py-2 text-center">
-                                    <!-- El mensaje de error se insertará aquí mediante JavaScript -->
+                                    El Debe y el Haber deben coincidir.
                                 </td>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
             </div>
+            
+            <!-- Botones de acción -->
+            <div class="mt-6 flex justify-between">
+                <button type="submit" class="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors" {% if total_debe != total_haber %}disabled{% endif %}>
+                    {% if is_edit %}Actualizar Comprobante{% else %}Registrar Comprobante{% endif %}
+                </button>
+                <a href="{% url 'doccomprobante_list' %}" class="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors">Cancelar</a>
+            </div>
         </div>
 
-        <!-- Formulario vacío para clonar -->
+        <!-- Formulario Vacío Oculto para Clonar -->
         <template id="empty-form">
             <tr class="movimiento-form hover:bg-gray-50 transition-colors">
                 <td class="px-4 py-3 border-r">
                     <div class="w-full">
                         <select name="movimientos-__prefix__-cuenta" id="id_movimientos-__prefix__-cuenta" class="form-select w-full">
+                            <option value="">Seleccione una cuenta</option>
                             {% for cuenta in cuentas %}
                                 <option value="{{ cuenta.id }}">{{ cuenta.codigo }} - {{ cuenta.nombre }}</option>
                             {% endfor %}
@@ -273,30 +287,21 @@
                 </td>
             </tr>
         </template>
-
-        <!-- Botones de acción -->
-        <div class="mt-6 flex justify-between">
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded"{% if total_debe != total_haber %}disabled{% endif %}>
-                {% if is_edit %}
-                    Actualizar Comprobante
-                {% else %}
-                    Registrar Comprobante
-                {% endif %}
-            </button>
-            <a href="{% url 'doccomprobante_list' %}" class="bg-gray-500 text-white py-2 px-4 rounded-lg">Cancelar</a>
-        </div>
     </form>
 </div>
 
+<!-- Scripts -->
 {% block extra_js %}
 <script>
     // Variable para almacenar el tipo de movimiento
     let tipoMovimiento = null;
 
-     // Función para formatear números a 2 decimales
+    // Función para formatear números a 2 decimales (siempre con punto decimal)
     function formatNumberInput(input) {
         var value = input.value;
         if (value !== undefined && value !== null && value !== '') {
+            // Reemplazar coma por punto para normalizar formato
+            value = value.toString().replace(',', '.');
             var numValue = parseFloat(value);
             if (!isNaN(numValue)) {
                 input.value = numValue.toFixed(2);
@@ -307,6 +312,13 @@
         } else {
             input.value = '0.00';  // Valor por defecto si está vacío
         }
+    }
+
+    // Función para normalizar valores numéricos (convertir comas a puntos)
+    function normalizeNumericValue(value) {
+        if (!value) return 0;
+        // Convertir a string y reemplazar coma por punto
+        return parseFloat(value.toString().replace(',', '.')) || 0;
     }
 
     // Función para formatear todos los campos numéricos
@@ -376,6 +388,32 @@
                     $('#{{ form.haber.auto_id }}').val({{ form.instance.haber|stringformat:".2f" }});
                 {% endif %}
             {% endfor %}
+        {% endif %}
+
+        {% if preserve_formset_data %}
+            // Preservar datos del formset cuando hay errores de validación
+            console.log('Preservando datos del formset después de error de validación');
+            
+            // Normalizar todos los campos numéricos que pueden tener comas
+            $('input[name$="-debe"], input[name$="-haber"]').each(function() {
+                var currentValue = $(this).val();
+                if (currentValue && currentValue !== '0.00') {
+                    // Normalizar formato (coma a punto) y formatear
+                    var normalizedValue = normalizeNumericValue(currentValue);
+                    $(this).val(normalizedValue.toFixed(2));
+                }
+            });
+            
+            // Los datos ya están preservados por Django en los campos del formulario
+            // Solo necesitamos actualizar los totales y el estado visual
+            updateTotals();
+            
+            // Cambiar automáticamente a la pestaña de cuentas si hay datos
+            var hasMovements = $('tr.movimiento-form').length > 0;
+            if (hasMovements) {
+                // Activar pestaña de cuentas
+                $('.tab-button[data-tab="cuentas"]').click();
+            }
         {% endif %}
 
         // Formatear todos los campos numéricos al iniciar
@@ -459,7 +497,7 @@
         updateTotals();
     });
 
-    // Eventos para formatear y actualizar valores numéricos
+    // Actualizar los totales cuando cambian los valores de Debe o Haber
     $(document).on('input', 'input[name$="-debe"], input[name$="-haber"]', function() {
         updateTotals();
     });
@@ -476,26 +514,30 @@
 
     // Para evitar el problema de debe/haber en un mismo movimiento
     $(document).on('input', 'input[name$="-debe"]', function() {
-        if (parseFloat($(this).val()) > 0) {
+        var value = normalizeNumericValue($(this).val());
+        if (value > 0) {
             $(this).closest('tr').find('input[name$="-haber"]').val('0.00');
         }
     });
 
     $(document).on('input', 'input[name$="-haber"]', function() {
-        if (parseFloat($(this).val()) > 0) {
+        var value = normalizeNumericValue($(this).val());
+        if (value > 0) {
             $(this).closest('tr').find('input[name$="-debe"]').val('0.00');
         }
     });
 
     // Para los inputs del formulario de agregar movimiento
     $('#id_debe_seleccionado').on('input', function() {
-        if (parseFloat($(this).val()) > 0) {
+        var value = normalizeNumericValue($(this).val());
+        if (value > 0) {
             $('#id_haber_seleccionado').val('0.00');
         }
     });
 
     $('#id_haber_seleccionado').on('input', function() {
-        if (parseFloat($(this).val()) > 0) {
+        var value = normalizeNumericValue($(this).val());
+        if (value > 0) {
             $('#id_debe_seleccionado').val('0.00');
         }
     });
@@ -507,11 +549,9 @@
 
     // Manejar eliminación de movimientos
     $(document).on('change', 'input[type="checkbox"][name$="-DELETE"]', function() {
-        // En lugar de ocultar la fila, marca visualmente que será eliminada
         var row = $(this).closest('tr');
         if ($(this).is(':checked')) {
-            row.addClass('to-delete bg-red-100'); // Añadir clase visual para ver claramente
-            // Importante: Desactivar los campos para que no sean incluidos en cálculos
+            row.addClass('to-delete bg-red-100');
             row.find('input[type="number"]').prop('disabled', true).addClass('opacity-50');
         } else {
             row.removeClass('to-delete bg-red-100');
@@ -573,17 +613,10 @@
             haberInput.value = parseFloat(haberSeleccionado).toFixed(2);
         }
 
-        // Corregir el nombre del checkbox DELETE
-        var deleteCheckbox = newRow.querySelector('input[type="checkbox"][id$="DELETE"]');
-        if (deleteCheckbox) {
-            deleteCheckbox.name = 'movimientos-' + currentFormCount + '-DELETE';
-            deleteCheckbox.id = 'id_movimientos-' + currentFormCount + '-DELETE';
-        }
-
-        // Actualizar el número total de formularios
+        // Incrementar el número total de formularios
         totalForms.value = currentFormCount + 1;
 
-        // Limpiar los campos de selección
+        // Limpiar los campos de entrada
         document.getElementById('id_cuenta_seleccionada').value = '';
         document.getElementById('id_debe_seleccionado').value = '';
         document.getElementById('id_haber_seleccionado').value = '';
@@ -602,8 +635,8 @@
             var isDeleted = $(this).find('input[type="checkbox"][name$="-DELETE"]').is(':checked');
             
             if (!isDeleted) {
-                var debe = parseFloat($(this).find('input[name$="-debe"]').val()) || 0;
-                var haber = parseFloat($(this).find('input[name$="-haber"]').val()) || 0;
+                var debe = normalizeNumericValue($(this).find('input[name$="-debe"]').val());
+                var haber = normalizeNumericValue($(this).find('input[name$="-haber"]').val());
                 
                 totalDebe += debe;
                 totalHaber += haber;
@@ -619,8 +652,7 @@
         $('#balance-diff').text(diff);
 
         // Mostrar o esconder mensaje de error de balance y deshabilitar botón de submit
-        // Cambiar el color del ajuste según si está balanceado o no
-        if (Math.abs(parseFloat(diff)) < 0.001) { // usar una pequeña tolerancia para evitar problemas de redondeo
+        if (Math.abs(parseFloat(diff)) < 0.001) { // Tolerancia decimal pequeña
             $('#balance-diff').removeClass('text-red-500').addClass('text-green-500');
             $('#balance-error').addClass('hidden');
             $('button[type="submit"]').prop('disabled', false);
@@ -642,17 +674,6 @@
 
     // Asegurar que al enviar el formulario los valores tengan formato correcto
     $('form').on('submit', function() {
-        // Para depuración, verificar si hay algún error de balance
-        var totalDebe = 0;
-        var totalHaber = 0;
-
-        $('tr.movimiento-form').each(function() {
-            if (!$(this).find('input[type="checkbox"][name$="-DELETE"]').is(':checked')) {
-                totalDebe += parseFloat($(this).find('input[name$="-debe"]').val() || 0);
-                totalHaber += parseFloat($(this).find('input[name$="-haber"]').val() || 0);
-            }
-        });
-
         // Formatear todos los campos antes de enviar
         $('.numeric-input').each(function() {
             if ($(this).val() !== '') {
@@ -663,4 +684,5 @@
     });
 </script>
 {% endblock extra_js %}
+
 {% endblock content %}
