@@ -11,6 +11,8 @@ from comite_pro.utils import is_admin, is_accountant  # Importa las funciones
 from django.core.paginator import Paginator
 from django.contrib import messages
 
+from django.http import HttpResponseRedirect
+
 # Vistas para CatalogoCuentas
 
 # Decorador aplicado para verificar si el usuario es administrador
@@ -19,6 +21,10 @@ class CatalogoCuentasListView(LoginRequiredMixin, generic.ListView):
     model = CatalogoCuentas
     template_name = 'catalogo_cuentas/catalogo_list.html'
     context_object_name = 'catalogos'
+
+    def get_queryset(self):
+        """Solo mostrar catálogos activos"""
+        return CatalogoCuentas.objects.filter(activo=True)
 
 @method_decorator(user_passes_test(is_admin), name='dispatch')
 class CatalogoCuentasCreateView(LoginRequiredMixin, generic.CreateView):
@@ -48,6 +54,20 @@ class CatalogoCuentasUpdateView(LoginRequiredMixin, generic.UpdateView):
         context['title'] = 'Editar Catálogo'
         return context
 
+@method_decorator(user_passes_test(is_admin), name='dispatch')
+class CatalogoCuentasDeleteView(LoginRequiredMixin, generic.View):
+    """Vista para desactivar catálogo (eliminación lógica)"""
+    
+    def post(self, request, pk):
+        try:
+            catalogo = CatalogoCuentas.objects.get(pk=pk)
+            catalogo.desactivar()
+            messages.success(request, f'Catálogo "{catalogo.nombre}" desactivado exitosamente.')
+        except CatalogoCuentas.DoesNotExist:
+            messages.error(request, 'El catálogo no existe.')
+        
+        return HttpResponseRedirect(reverse_lazy('catalogo_list'))
+    
 # Vistas para Cuenta
 
 class CuentaListView(LoginRequiredMixin, generic.ListView):
@@ -58,7 +78,9 @@ class CuentaListView(LoginRequiredMixin, generic.ListView):
     ordering = ['codigo']  
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        """Solo mostrar cuentas activas con búsqueda opcional"""
+        #queryset = super().get_queryset()
+        queryset = Cuenta.objects.filter(activo=True).order_by('codigo')
         query = self.request.GET.get('query')
         if query:
             queryset = queryset.filter(nombre__icontains=query)
@@ -77,6 +99,11 @@ class CuentaCreateView(LoginRequiredMixin, generic.CreateView):
         context['title'] = 'Crear Nueva Cuenta'
         return context
     
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['catalogo_queryset'] = CatalogoCuentas.objects.filter(activo=True)
+        return kwargs
+    
     def form_valid(self, form):
         messages.success(self.request, 'Cuenta creada exitosamente.')
         return super().form_valid(form)
@@ -88,10 +115,29 @@ class CuentaUpdateView(LoginRequiredMixin, generic.UpdateView):
     template_name = 'catalogo_cuentas/cuenta_form.html'
     success_url = reverse_lazy('cuenta_list')
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['catalogo_queryset'] = CatalogoCuentas.objects.filter(activo=True)
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Editar Cuenta'
         return context
+
+@method_decorator(user_passes_test(is_admin), name='dispatch')
+class CuentaDeleteView(LoginRequiredMixin, generic.View):
+    """Vista para desactivar cuenta (eliminación lógica)"""
+    
+    def post(self, request, pk):
+        try:
+            cuenta = Cuenta.objects.get(pk=pk)
+            cuenta.desactivar()
+            messages.success(request, f'Cuenta "{cuenta.nombre}" desactivada exitosamente.')
+        except Cuenta.DoesNotExist:
+            messages.error(request, 'La cuenta no existe.')
+        
+        return HttpResponseRedirect(reverse_lazy('cuenta_list'))
 
 # Vista para Plan de Cuentas Jerárquico
 class PlanCuentasView(LoginRequiredMixin, TemplateView):
@@ -99,11 +145,17 @@ class PlanCuentasView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Obtén todas las cuentas principales
-        cuentas = Cuenta.objects.filter(parent__isnull=True).prefetch_related('subcuentas')
+        # Obtén todas las cuentas principales activas
+        #cuentas = Cuenta.objects.filter(parent__isnull=True).prefetch_related('subcuentas')
+        cuentas = Cuenta.objects.filter(
+            activo=True, 
+            parent__isnull=True
+        ).prefetch_related('subcuentas')
 
         def obtener_subcuentas(cuenta):
-            return cuenta.subcuentas.all()
+            """Obtener solo subcuentas activas"""
+            return cuenta.subcuentas.filter(activo=True)
+            #return cuenta.subcuentas.all()
 
         # Prepara cuentas con subcuentas
         cuentas_con_subcuentas = []

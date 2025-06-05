@@ -41,7 +41,8 @@ class RegistrarPolizaView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         poliza_form = PolizaForm(initial={'tipo_operacion': 'Póliza'}, is_edit=False)  # Pasar is_edit=False
         movimiento_formset = MovimientoFormSet()
-        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')
+        #Filtrar solo cuentas activas
+        cuentas = Cuenta.objects.filter(activo=True, nivel__in=[2, 3]).order_by('nivel', 'codigo')
         
         return render(request, 'transacciones/registro_poliza.html', {
             'poliza_form': poliza_form,
@@ -54,7 +55,8 @@ class RegistrarPolizaView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         poliza_form = PolizaForm(request.POST, is_edit=False)  # Pasar is_edit=False
         movimiento_formset = MovimientoFormSet(request.POST)
-        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')
+        # Filtrar solo cuentas activas
+        cuentas = Cuenta.objects.filter(activo=True, nivel__in=[2, 3]).order_by('nivel', 'codigo')
 
         # Definir función helper para renderizar en caso de error
         def render_error_response(error_message=None):
@@ -237,8 +239,8 @@ class ActualizarPolizaView(LoginRequiredMixin, View):
         poliza_form = PolizaForm(instance=poliza, initial=initial_data, is_edit=True)  # Pasar is_edit=True
         movimiento_formset = MovimientoFormSet(instance=poliza)
 
-        # Obtener lista de cuentas disponibles (todas las cuentas)
-        cuentas = Cuenta.objects.all()
+        # Filtrar solo cuentas activas        cuentas = Cuenta.objects.all()
+        cuentas = Cuenta.objects.filter(activo=True)
 
         # Calcular totales para mostrarlos inicialmente
         movimientos = Movimiento.objects.filter(transaccion=poliza)
@@ -262,7 +264,9 @@ class ActualizarPolizaView(LoginRequiredMixin, View):
         # Inicializar formularios con datos del POST e instancias existentes
         poliza_form = PolizaForm(request.POST, instance=poliza, is_edit=True)  # Pasar is_edit=True
         movimiento_formset = MovimientoFormSet(request.POST, instance=poliza)
-        cuentas = Cuenta.objects.all()
+        # CAMBIO: Filtrar solo cuentas activas cuentas = Cuenta.objects.all()
+        cuentas = Cuenta.objects.filter(activo=True)
+        
 
         # Función helper para renderizar en caso de error
         def render_error_response(error_message=None):

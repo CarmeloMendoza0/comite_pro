@@ -117,7 +117,7 @@ class RegistroDocComprobanteView(LoginRequiredMixin, View):
         comprobante_form = DocComprobanteForm()
         transaccion_form = TransaccionForm(is_edit=False)
         movimiento_formset = MovimientoFormSet()
-        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo') # Solo cuentas de nivel 3
+        cuentas = Cuenta.objects.filter(activo=True, nivel__in=[2, 3]).order_by('nivel', 'codigo') # Solo cuentas ACTIVAS de nivel 2 Y 3 
 
         return render(request, 'documentos/doccomprobante_form.html', {
             'comprobante_form': comprobante_form,
@@ -132,7 +132,7 @@ class RegistroDocComprobanteView(LoginRequiredMixin, View):
         comprobante_form = DocComprobanteForm(request.POST)
         transaccion_form = TransaccionForm(request.POST, is_edit=False)
         movimiento_formset = MovimientoFormSet(request.POST)
-        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Solo cuentas de nivel 3 (nivel=3)
+        cuentas = Cuenta.objects.filter(activo=True, nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Solo cuentas de nivel 3 (nivel=3)
 
         # Obtener el tipo de movimiento del formulario
         tipo_movimiento = request.POST.get('tipo_movimiento')
@@ -328,8 +328,8 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
         )
         movimiento_formset = MovimientoFormSet(instance=transaccion)
 
-        # Obtener lista de cuentas disponibles
-        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Solo cuentas de nivel 3
+        # Obtener lista de cuentas ACTIVAS disponibles
+        cuentas = Cuenta.objects.filter(activo=True, nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Solo cuentas de nivel 2 Y 3
 
         # Calcular totales para mostrarlos inicialmente
         movimientos = Movimiento.objects.filter(transaccion=transaccion)
@@ -369,7 +369,7 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
         transaccion_form = TransaccionForm(request.POST, instance=transaccion, is_edit=True)
         movimiento_formset = MovimientoFormSet(request.POST, instance=transaccion)
 
-        cuentas = Cuenta.objects.filter(nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Solo cuentas de nivel 3 (nivel=3)
+        cuentas = Cuenta.objects.filter(activo=True, nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Solo cuentas de nivel 2 Y 3
 
         # Obtener el tipo de movimiento del formulario
         tipo_movimiento = request.POST.get('tipo_movimiento')

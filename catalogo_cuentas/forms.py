@@ -25,3 +25,10 @@ class CuentaForm(forms.ModelForm):
             'parent': forms.Select(attrs={'class': 'form-select'}),
             'nivel': forms.NumberInput(attrs={'class': 'form-input'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        catalogo_queryset = kwargs.pop('catalogo_queryset', None)
+        super().__init__(*args, **kwargs)
+        
+        if catalogo_queryset is not None:
+            self.fields['catalogo'].queryset = catalogo_queryset
