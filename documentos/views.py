@@ -7,6 +7,8 @@ from django.contrib import messages
 from django.db import transaction
 from django.core.exceptions import ValidationError
 
+from terceros.models import Persona, Proveedor
+
 from .models import TipoDocumento, DocComprobante
 from transacciones.models import Transaccion, Movimiento
 from transacciones.forms import TransaccionForm
@@ -114,7 +116,7 @@ class DocComprobanteListView(LoginRequiredMixin, generic.ListView):
 
 class RegistroDocComprobanteView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
-        comprobante_form = DocComprobanteForm()
+        comprobante_form = DocComprobanteForm(is_edit=False)
         transaccion_form = TransaccionForm(is_edit=False)
         movimiento_formset = MovimientoFormSet()
         cuentas = Cuenta.objects.filter(activo=True, nivel__in=[2, 3]).order_by('nivel', 'codigo') # Solo cuentas ACTIVAS de nivel 2 Y 3 
@@ -129,7 +131,7 @@ class RegistroDocComprobanteView(LoginRequiredMixin, View):
         })
     
     def post(self, request, *args, **kwargs):
-        comprobante_form = DocComprobanteForm(request.POST)
+        comprobante_form = DocComprobanteForm(request.POST, is_edit=False)
         transaccion_form = TransaccionForm(request.POST, is_edit=False)
         movimiento_formset = MovimientoFormSet(request.POST)
         cuentas = Cuenta.objects.filter(activo=True, nivel__in=[2, 3]).order_by('nivel', 'codigo')  # Solo cuentas de nivel 3 (nivel=3)
@@ -320,7 +322,7 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
         }
 
         # Inicializar formularios con instancias existentes
-        comprobante_form = DocComprobanteForm(instance=comprobante, initial=initial_data)
+        comprobante_form = DocComprobanteForm(instance=comprobante, initial=initial_data, is_edit=True)
         transaccion_form = TransaccionForm(
             instance=transaccion, 
             initial={'fecha': transaccion.fecha.strftime('%Y-%m-%d') if transaccion.fecha else None},
@@ -365,7 +367,7 @@ class EditarDocComprobanteView(LoginRequiredMixin, View):
             return redirect('doccomprobante_list')
         
         # Inicializar formularios con datos del POST e instancias existentes
-        comprobante_form = DocComprobanteForm(request.POST, instance=comprobante)
+        comprobante_form = DocComprobanteForm(request.POST, instance=comprobante, is_edit=True)
         transaccion_form = TransaccionForm(request.POST, instance=transaccion, is_edit=True)
         movimiento_formset = MovimientoFormSet(request.POST, instance=transaccion)
 

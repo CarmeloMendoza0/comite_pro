@@ -41,7 +41,7 @@ def verificar_credencial_admin(request):
 
 class RegistroDocumentoBancoView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
-        documento_form = DocumentoBancoForm()
+        documento_form = DocumentoBancoForm(is_edit=False)
         transaccion_form = TransaccionForm(is_edit=False)
         movimiento_formset = MovimientoFormSet()
         cuentas = Cuenta.objects.filter(activo=True, nivel__in=[2, 3]).order_by('nivel', 'codigo')  
@@ -56,7 +56,7 @@ class RegistroDocumentoBancoView(LoginRequiredMixin, View):
         })
 
     def post(self, request, *args, **kwargs):
-        documento_form = DocumentoBancoForm(request.POST)
+        documento_form = DocumentoBancoForm(request.POST, is_edit=False)
         transaccion_form = TransaccionForm(request.POST, is_edit=False)
         movimiento_formset = MovimientoFormSet(request.POST)
         cuentas = Cuenta.objects.filter(activo=True, nivel__in=[2, 3]).order_by('nivel', 'codigo')
@@ -230,7 +230,6 @@ class RegistroDocumentoBancoView(LoginRequiredMixin, View):
 
             return render_error_response('Por favor, corrige los errores en el formulario.')
 
-
 class DocumentoBancoListView(LoginRequiredMixin, generic.ListView):
     model = DocumentoBanco
     template_name = 'bancos/documentobanco_list.html'
@@ -277,7 +276,7 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
         }
 
         # Inicializar formularios con instancias existentes
-        documento_form = DocumentoBancoForm(instance=documento_banco, initial=initial_data)
+        documento_form = DocumentoBancoForm(instance=documento_banco, initial=initial_data, is_edit=True)
         transaccion_form = TransaccionForm(
             instance=transaccion, 
             initial={'fecha': transaccion.fecha.strftime('%Y-%m-%d') if transaccion.fecha else None}, 
@@ -321,7 +320,7 @@ class EditarDocumentoBancoView(LoginRequiredMixin, View):
             return redirect('documentobanco_list')
         
         # Inicializar formularios con datos del POST e instancias existentes
-        documento_form = DocumentoBancoForm(request.POST, instance=documento_banco)
+        documento_form = DocumentoBancoForm(request.POST, instance=documento_banco, is_edit=True)
         transaccion_form = TransaccionForm(request.POST, instance=transaccion, is_edit=True)
         movimiento_formset = MovimientoFormSet(request.POST, instance=transaccion)
 

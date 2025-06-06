@@ -1,6 +1,8 @@
 # comite_pro/documentos/forms.py
 
 from django import forms
+
+from terceros.models import Persona, Proveedor
 from .models import TipoDocumento, DocComprobante
 from django.core.exceptions import ValidationError
 from transacciones.models import Movimiento, Transaccion
@@ -32,6 +34,30 @@ class DocComprobanteForm(forms.ModelForm):
             'monto_total': forms.NumberInput(attrs={'class': 'form-input'}),
             'estado': forms.Select(attrs={'class': 'form-select'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        is_edit = kwargs.pop('is_edit', False)  # ← AGREGAR
+        super().__init__(*args, **kwargs)
+        
+        if not is_edit:
+            # Para nuevos registros, mostrar solo clientes y proveedores activos
+            self.fields['cliente'].queryset = Persona.objects.filter(
+                activo=True, tipo=Persona.CLIENTE
+            )
+            self.fields['proveedor'].queryset = Proveedor.objects.filter(activo=True)
+        else:
+            # Para edición, mostrar todos los clientes y proveedores pero marcar los inactivos
+            cliente_choices = []
+            for cliente in Persona.objects.filter(tipo=Persona.CLIENTE):
+                label = str(cliente) if cliente.activo else f"{cliente} (INACTIVO)"
+                cliente_choices.append((cliente.id, label))
+            self.fields['cliente'].choices = [('', '---------')] + cliente_choices
+            
+            proveedor_choices = []
+            for proveedor in Proveedor.objects.all():
+                label = str(proveedor) if proveedor.activo else f"{proveedor} (INACTIVO)"
+                proveedor_choices.append((proveedor.id, label))
+            self.fields['proveedor'].choices = [('', '---------')] + proveedor_choices
 
     def clean(self):
         cleaned_data = super().clean()

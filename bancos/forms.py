@@ -1,6 +1,7 @@
 # comite_pro/bancos/forms.py
 
 from django import forms
+from terceros.models import Persona, Proveedor
 from transacciones.models import Movimiento, Transaccion
 from .models import DocumentoBanco
 
@@ -18,6 +19,28 @@ class DocumentoBancoForm(forms.ModelForm):
             'monto': forms.NumberInput(attrs={'class': 'form-input'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        is_edit = kwargs.pop('is_edit', False)  # ← AGREGAR
+        super().__init__(*args, **kwargs)
+        
+        if not is_edit:
+            # Para nuevos registros, mostrar solo entidades y proveedores activos
+            self.fields['entidad'].queryset = Persona.objects.filter(activo=True)
+            self.fields['proveedor'].queryset = Proveedor.objects.filter(activo=True)
+        else:
+            # Para edición, mostrar todos pero marcar los inactivos
+            entidad_choices = []
+            for entidad in Persona.objects.all():
+                label = str(entidad) if entidad.activo else f"{entidad} (INACTIVO)"
+                entidad_choices.append((entidad.id, label))
+            self.fields['entidad'].choices = [('', '---------')] + entidad_choices
+            
+            proveedor_choices = []
+            for proveedor in Proveedor.objects.all():
+                label = str(proveedor) if proveedor.activo else f"{proveedor} (INACTIVO)"
+                proveedor_choices.append((proveedor.id, label))
+            self.fields['proveedor'].choices = [('', '---------')] + proveedor_choices
+
     def clean(self):
         cleaned_data = super().clean()
         empresa = cleaned_data.get('empresa')
@@ -30,7 +53,7 @@ class DocumentoBancoForm(forms.ModelForm):
         if not fecha:
             self.add_error('fecha', 'Debe ingresar una fecha.')
 
-        # Si necesitas validar algo más, hazlo aquí
+        # validar algo más
 
         return cleaned_data
 

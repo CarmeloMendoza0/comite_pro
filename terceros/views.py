@@ -11,6 +11,10 @@ from django.contrib import messages
 from .models import Proveedor, Persona
 from .forms import ProveedorForm, ClienteForm, DonanteForm
 
+from django.shortcuts import get_object_or_404, redirect
+from django.http import HttpResponseRedirect
+from django.contrib.auth.mixins import LoginRequiredMixin
+
 # Cliente Views
 @method_decorator([login_required, user_passes_test(is_admin)], name='dispatch')
 class ClienteCreateView(generic.CreateView):
@@ -65,9 +69,10 @@ class ClienteListView(generic.ListView):
     def get_queryset(self):
         queryset = Persona.objects.filter(
             tipo=Persona.CLIENTE,
+            activo=True,
             empresa__usuario=self.request.user
         )
-        
+
         # Búsqueda
         query = self.request.GET.get('q')
         if query:
@@ -84,6 +89,21 @@ class ClienteListView(generic.ListView):
         context['url_edit'] = 'cliente_update'
         context['item_type'] = 'Cliente'
         return context
+
+@method_decorator(user_passes_test(is_admin), name='dispatch')
+class ClienteDeleteView(LoginRequiredMixin, generic.View):
+    """Vista para desactivar cliente (eliminación lógica)"""
+    
+    def post(self, request, pk):
+        try:
+            cliente = Persona.objects.get(pk=pk, tipo=Persona.CLIENTE, empresa__usuario=request.user)
+            cliente.desactivar()
+            messages.success(request, f'Cliente "{cliente.nombre}" desactivado exitosamente.')
+        except Persona.DoesNotExist:
+            messages.error(request, 'El cliente no existe.')
+        
+        return HttpResponseRedirect(reverse_lazy('cliente_list'))
+
 
 # Donante Views
 @method_decorator([login_required, user_passes_test(is_admin)], name='dispatch')
@@ -139,6 +159,7 @@ class DonanteListView(generic.ListView):
     def get_queryset(self):
         queryset = Persona.objects.filter(
             tipo=Persona.DONANTE,
+            activo=True,
             empresa__usuario=self.request.user
         )
         
@@ -158,6 +179,20 @@ class DonanteListView(generic.ListView):
         context['url_edit'] = 'donante_update'
         context['item_type'] = 'Donante'
         return context
+
+@method_decorator(user_passes_test(is_admin), name='dispatch')
+class DonanteDeleteView(LoginRequiredMixin, generic.View):
+    """Vista para desactivar donante (eliminación lógica)"""
+    
+    def post(self, request, pk):
+        try:
+            donante = Persona.objects.get(pk=pk, tipo=Persona.DONANTE, empresa__usuario=request.user)
+            donante.desactivar()
+            messages.success(request, f'Donante "{donante.nombre}" desactivado exitosamente.')
+        except Persona.DoesNotExist:
+            messages.error(request, 'El donante no existe.')
+        
+        return HttpResponseRedirect(reverse_lazy('donante_list'))
 
 # Proveedor Views
 @method_decorator([login_required, user_passes_test(is_admin)], name='dispatch')
@@ -194,7 +229,6 @@ class ProveedorUpdateView(generic.UpdateView):
         context['url_list'] = reverse_lazy('proveedor_list')
         return context
     
-#@method_decorator(login_required, user_passes_test(is_admin), name='dispatch')
 @method_decorator([login_required, user_passes_test(is_admin)], name='dispatch')
 class ProveedorListView(generic.ListView):
     model = Proveedor
@@ -203,7 +237,10 @@ class ProveedorListView(generic.ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        queryset = Proveedor.objects.filter(empresa__usuario=self.request.user)
+        queryset = Proveedor.objects.filter(
+            activo=True,
+            empresa__usuario=self.request.user
+        )
         
         # Búsqueda
         query = self.request.GET.get('q')
@@ -221,3 +258,18 @@ class ProveedorListView(generic.ListView):
         context['url_edit'] = 'proveedor_update'
         context['item_type'] = 'Proveedor'
         return context
+    
+@method_decorator(user_passes_test(is_admin), name='dispatch') 
+class ProveedorDeleteView(LoginRequiredMixin, generic.View):
+    """Vista para desactivar proveedor (eliminación lógica)"""
+    
+    def post(self, request, pk):
+        try:
+            proveedor = Proveedor.objects.get(pk=pk, empresa__usuario=request.user)
+            proveedor.desactivar()
+            messages.success(request, f'Proveedor "{proveedor.nombre}" desactivado exitosamente.')
+        except Proveedor.DoesNotExist:
+            messages.error(request, 'El proveedor no existe.')
+        
+        return HttpResponseRedirect(reverse_lazy('proveedor_list'))    
+    
