@@ -16,9 +16,33 @@ class TipoDocumento(models.Model):
     descripcion = models.CharField(max_length=255, blank=True, null=True, verbose_name="Descripción")
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, verbose_name="Tipo")
     codigo = models.CharField(max_length=20, unique=True, verbose_name="Código")
+    activo = models.BooleanField(default=True, verbose_name="Activo",
+                                help_text="Indica si está activo en el sistema")
 
     def __str__(self):
-        return f"{self.codigo} - {self.nombre}"
+        estado_str = " (INACTIVO)" if not self.activo else ""
+        return f"{self.codigo} - {self.nombre}{estado_str}"
+    
+    def desactivar(self):
+        """Método para desactivar el tipo de documento de forma controlada"""
+        self.activo = False
+        self.save()
+
+    def activar(self): 
+        """Método para reactivar el tipo de documento si es necesario"""
+        self.activo = True
+        self.save()
+
+    # Managers personalizados para filtrar tipos
+    @classmethod 
+    def activos(cls):
+        """Retorna solo tipos de documento activos"""
+        return cls.objects.filter(activo=True)
+
+    @classmethod 
+    def inactivos(cls):
+        """Retorna solo tipos de documento inactivos"""
+        return cls.objects.filter(activo=False)
 
 class DocComprobante(models.Model):
     ESTADO_CHOICES = [

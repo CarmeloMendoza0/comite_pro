@@ -45,19 +45,29 @@ class DocComprobanteForm(forms.ModelForm):
                 activo=True, tipo=Persona.CLIENTE
             )
             self.fields['proveedor'].queryset = Proveedor.objects.filter(activo=True)
+            self.fields['tipo_documento'].queryset = TipoDocumento.objects.filter(
+                activo=True, tipo='Comprobante'
+            )
         else:
-            # Para edición, mostrar todos los clientes y proveedores pero marcar los inactivos
+            # Para edición, mostrar todos pero marcar los inactivos
+            # Clientes
             cliente_choices = []
             for cliente in Persona.objects.filter(tipo=Persona.CLIENTE):
                 label = str(cliente) if cliente.activo else f"{cliente} (INACTIVO)"
                 cliente_choices.append((cliente.id, label))
             self.fields['cliente'].choices = [('', '---------')] + cliente_choices
-            
+            # Proveedores
             proveedor_choices = []
             for proveedor in Proveedor.objects.all():
                 label = str(proveedor) if proveedor.activo else f"{proveedor} (INACTIVO)"
                 proveedor_choices.append((proveedor.id, label))
             self.fields['proveedor'].choices = [('', '---------')] + proveedor_choices
+            # TipoDocumento
+            tipo_documento_choices = []
+            for tipo_doc in TipoDocumento.objects.filter(tipo='Comprobante'):
+                label = str(tipo_doc) if tipo_doc.activo else f"{tipo_doc} (INACTIVO)"
+                tipo_documento_choices.append((tipo_doc.id, label))
+            self.fields['tipo_documento'].choices = [('', '---------')] + tipo_documento_choices
 
     def clean(self):
         cleaned_data = super().clean()

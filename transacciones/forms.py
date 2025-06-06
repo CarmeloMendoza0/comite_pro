@@ -1,6 +1,8 @@
 # comite_pro/transacciones/forms.py
 
 from django import forms
+
+from documentos.models import TipoDocumento
 from .models import Transaccion, Movimiento
 from empresa.models import PeriodoContable
 from django.forms import inlineformset_factory
@@ -118,6 +120,9 @@ class PolizaForm(forms.ModelForm):
         if not is_edit:
             # Para nuevos registros, mostrar solo periodos abiertos
             self.fields['periodo'].queryset = PeriodoContable.objects.filter(estado='Abierto')
+            self.fields['tipo_documento'].queryset = TipoDocumento.objects.filter(
+                activo=True, tipo='Póliza'
+            )
         else:
             # Para edición, mostrar todos los periodos pero marcar los cerrados
             self.fields['periodo'].queryset = PeriodoContable.objects.all()
@@ -130,6 +135,12 @@ class PolizaForm(forms.ModelForm):
                     label = str(periodo)
                 choices.append((periodo.id, label))
             self.fields['periodo'].choices = choices
+            # TipoDocumento
+            tipo_documento_choices = []
+            for tipo_doc in TipoDocumento.objects.filter(tipo='Póliza'):
+                label = str(tipo_doc) if tipo_doc.activo else f"{tipo_doc} (INACTIVO)"
+                tipo_documento_choices.append((tipo_doc.id, label))
+            self.fields['tipo_documento'].choices = [('', '---------')] + tipo_documento_choices
 
     def clean(self):
         cleaned_data = super().clean()

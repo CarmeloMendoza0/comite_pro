@@ -20,6 +20,7 @@ from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import user_passes_test
 from comite_pro.utils import is_admin, is_accountant  
+from django.http import HttpResponseRedirect
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -53,6 +54,9 @@ class TipoDocumentoListView(LoginRequiredMixin, generic.ListView):
     template_name = 'documentos/tipodocumento_list.html'
     context_object_name = 'tipos_documento'
 
+    def get_queryset(self): 
+        return TipoDocumento.objects.filter(activo=True)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Lista de Tipos de Documento'
@@ -81,6 +85,18 @@ class TipoDocumentoUpdateView(LoginRequiredMixin, generic.UpdateView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Editar Tipo de Documento'
         return context
+
+@method_decorator(user_passes_test(is_admin), name='dispatch')
+class TipoDocumentoDeleteView(LoginRequiredMixin, generic.View):
+    """Vista para desactivar tipo de documento (eliminación lógica)"""
+    def post(self, request, pk):
+        try:
+            tipo_documento = TipoDocumento.objects.get(pk=pk)
+            tipo_documento.desactivar()
+            messages.success(request, f'Tipo de documento "{tipo_documento.nombre}" desactivado exitosamente.')
+        except TipoDocumento.DoesNotExist:
+            messages.error(request, 'El tipo de documento no existe.')
+        return HttpResponseRedirect(reverse_lazy('tipodocumento_list'))
 
 # Vistas para DocComprobante
 

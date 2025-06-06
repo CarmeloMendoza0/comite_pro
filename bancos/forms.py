@@ -1,6 +1,7 @@
 # comite_pro/bancos/forms.py
 
 from django import forms
+from documentos.models import TipoDocumento
 from terceros.models import Persona, Proveedor
 from transacciones.models import Movimiento, Transaccion
 from .models import DocumentoBanco
@@ -27,19 +28,29 @@ class DocumentoBancoForm(forms.ModelForm):
             # Para nuevos registros, mostrar solo entidades y proveedores activos
             self.fields['entidad'].queryset = Persona.objects.filter(activo=True)
             self.fields['proveedor'].queryset = Proveedor.objects.filter(activo=True)
+            self.fields['tipo_documento'].queryset = TipoDocumento.objects.filter(
+                activo=True, tipo='Documento Bancario'
+            )
         else:
             # Para edición, mostrar todos pero marcar los inactivos
+            #Entidad
             entidad_choices = []
             for entidad in Persona.objects.all():
                 label = str(entidad) if entidad.activo else f"{entidad} (INACTIVO)"
                 entidad_choices.append((entidad.id, label))
             self.fields['entidad'].choices = [('', '---------')] + entidad_choices
-            
+            #Proveedor
             proveedor_choices = []
             for proveedor in Proveedor.objects.all():
                 label = str(proveedor) if proveedor.activo else f"{proveedor} (INACTIVO)"
                 proveedor_choices.append((proveedor.id, label))
             self.fields['proveedor'].choices = [('', '---------')] + proveedor_choices
+            # TipoDocumento
+            tipo_documento_choices = []
+            for tipo_doc in TipoDocumento.objects.filter(tipo='Documento Bancario'):
+                label = str(tipo_doc) if tipo_doc.activo else f"{tipo_doc} (INACTIVO)"
+                tipo_documento_choices.append((tipo_doc.id, label))
+            self.fields['tipo_documento'].choices = [('', '---------')] + tipo_documento_choices
 
     def clean(self):
         cleaned_data = super().clean()
