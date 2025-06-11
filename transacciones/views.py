@@ -199,7 +199,7 @@ class PolizaListView(LoginRequiredMixin, generic.ListView):
     model = Transaccion
     template_name = 'transacciones/poliza_list.html'
     context_object_name = 'polizas'
-    paginate_by = 10 
+    paginate_by = 12 
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

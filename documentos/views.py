@@ -104,6 +104,7 @@ class DocComprobanteListView(LoginRequiredMixin, generic.ListView):
     model = DocComprobante
     template_name = 'documentos/doccomprobante_list.html'
     context_object_name = 'documentos'
+    paginate_by = 12
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

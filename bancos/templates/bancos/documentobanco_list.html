@@ -295,13 +295,13 @@
             </div>
         </div>
     </div>
-    {% endif %}
-    
-    <!-- Información adicional opcional -->
-    {% if documentos_banco and not is_paginated %}
-    <div class="mt-6 text-sm text-gray-500">
-        Mostrando {{ documentos_banco|length }} documento{{ documentos_banco|length|pluralize }} bancario{{ documentos_banco|length|pluralize }}
-    </div>
+    {% else %}
+        <!-- Información adicional -->
+        {% if documentos_banco %}
+        <div class="mt-6 text-sm text-gray-500">
+            Mostrando {{ documentos_banco|length }} documento{{ documentos_banco|length|pluralize }} bancario{{ documentos_banco|length|pluralize }}
+        </div>
+        {% endif %}
     {% endif %}
 </div>
 

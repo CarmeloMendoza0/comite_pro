@@ -322,13 +322,13 @@
             </div>
         </div>
     </div>
-    {% endif %}
-    
-    <!-- Información adicional opcional -->
-    {% if documentos %}
-    <div class="mt-6 text-sm text-gray-500">
-        Mostrando {{ documentos|length }} comprobante{{ documentos|length|pluralize }}
-    </div>
+    {% else %}
+        <!-- Información adicional -->
+        {% if documentos %}
+        <div class="mt-6 text-sm text-gray-500">
+            Mostrando {{ documentos|length }} comprobante{{ documentos|length|pluralize }}
+        </div>
+        {% endif %}
     {% endif %}
 </div>
 
